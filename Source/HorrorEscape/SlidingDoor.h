@@ -23,7 +23,7 @@ struct HORRORESCAPE_API FMovePosition
 
 	/*-1 moves the door in a negative direction on the axis, 0 means no movement and (+)1 moves it in a positive direction on the axis*/
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "bEnableMoving", ClampMin = "-1", ClampMax = "1"))
-	int8 bMoveDirection { 0 };
+	int8 MoveDirection { 0 };
 
 	UPROPERTY(EditAnywhere, meta = (EditCondition = "bEnableMoving"))
 	bool bEnableAdditive{ false };
@@ -48,6 +48,7 @@ class HORRORESCAPE_API USlidingDoor : public UDoor
 	virtual void BeginPlay() override;
 private:
 	virtual void Update(float DeltaTime) override;
+	void MoveDoor(FVector& StartLocation, const FVector& TargetLocation, float DeltaTime);
 private:
 	FVector BeginPosition;
 	FVector EndPosition;
