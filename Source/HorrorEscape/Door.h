@@ -31,7 +31,7 @@ private:
 protected:
 	bool bFinishedAnimation{ true };
 	UPROPERTY(EditAnywhere)
-	float ScalarMove{ 0.2f };
+	float ScalarMove{ 150.f };
 	
 	/*Enable testing/debugging*/
 	UPROPERTY(EditAnywhere)
