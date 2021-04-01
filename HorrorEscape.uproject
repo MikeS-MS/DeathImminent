@@ -26,6 +26,10 @@
 		{
 			"Name": "EditorScriptingUtilities",
 			"Enabled": true
+		},
+		{
+			"Name": "RemoteSession",
+			"Enabled": true
 		}
 	]
 }
