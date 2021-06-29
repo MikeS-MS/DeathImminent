@@ -10,6 +10,7 @@ void USlidingDoor::BeginPlay()
 	Super::BeginPlay();
 
 	this->SetUpValues(this->GetOwner());
+	GEngine->GetWorld();
 }
 
 void USlidingDoor::SetUpValues(AActor* Actor)
