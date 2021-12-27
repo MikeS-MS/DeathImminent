@@ -38,6 +38,10 @@
 		{
 			"Name": "AdvancedSteamSessions",
 			"Enabled": true
+		},
+		{
+			"Name": "ManualMeshGridSystem",
+			"Enabled": false
 		}
 	]
 }
