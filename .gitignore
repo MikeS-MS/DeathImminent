@@ -54,6 +54,8 @@ Build/*
 
 # Content
 Content/Shipping/Models
+Content/Dev/Models
+Content/Dev/Temp
 
 # Whitelist PakBlacklist-<BuildConfiguration>.txt files
 !Build/*/
