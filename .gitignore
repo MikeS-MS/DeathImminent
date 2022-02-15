@@ -53,9 +53,10 @@ Plugins/*/Binaries/*
 Build/*
 
 # Content
-Content/Shipping/Models
-Content/Dev/Models
-Content/Dev/Temp
+Content/Audio
+Content/FX
+Content/Models
+Content/Temp
 
 # Whitelist PakBlacklist-<BuildConfiguration>.txt files
 !Build/*/
