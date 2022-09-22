@@ -9,7 +9,8 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
-				"Engine"
+				"Engine",
+				"CoreUObject"
 			]
 		}
 	],
@@ -49,24 +50,9 @@
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/bec5be3d587f4ff49a61d45d0e81e4c0"
 		},
 		{
-			"Name": "OnlineSubsystemGooglePlay",
-			"Enabled": false,
-			"SupportedTargetPlatforms": [
-				"Android"
-			]
-		},
-		{
-			"Name": "GooglePAD",
-			"Enabled": false
-		},
-		{
-			"Name": "RuntimeFilesDownloader",
+			"Name": "SortPlugin",
 			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/e7e6df6d6e9c46f0ae35163eab67ff9a"
-		},
-		{
-			"Name": "OnlineSubsystemGoogle",
-			"Enabled": true
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/813e339b92ad4cf587a4cef56bec7020"
 		}
 	]
 }
