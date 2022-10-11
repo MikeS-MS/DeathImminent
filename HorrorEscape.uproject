@@ -62,6 +62,10 @@
 		{
 			"Name": "StaticMeshEditorModeling",
 			"Enabled": true
+		},
+		{
+			"Name": "JsonBlueprintUtilities",
+			"Enabled": true
 		}
 	]
 }
