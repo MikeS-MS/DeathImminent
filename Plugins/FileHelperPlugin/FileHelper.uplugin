@@ -1,0 +1,32 @@
+{
+	"FileVersion": 3,
+	"Version": 5,
+	"VersionName": "2.1",
+	"FriendlyName": "FileHelper",
+	"Description": "Various functions to handle files format on the file system",
+	"Category": "File",
+	"CreatedBy": "RLoris",
+	"CreatedByURL": "https://rloris.github.io",
+	"DocsURL": "https://github.com/RLoris/FileHelperDoc/",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/bec5be3d587f4ff49a61d45d0e81e4c0",
+	"SupportURL": "https://forms.gle/CpekZfTewGZrUVen7",
+	"EngineVersion": "5.1.0",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "FileHelper",
+			"Type": "Runtime",
+			"LoadingPhase": "PreLoadingScreen",
+			"PlatformAllowList": [
+				"Win64",
+				"HoloLens",
+				"Mac",
+				"IOS",
+				"Android",
+				"Linux",
+				"TVOS"
+			]
+		}
+	]
+}
