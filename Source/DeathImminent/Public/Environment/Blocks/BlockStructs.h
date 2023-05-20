@@ -3,14 +3,6 @@
 #include "CoreMinimal.h"
 #include "BlockStructs.generated.h"
 
-
-USTRUCT(BlueprintType)
-struct FBlock
-{
-	GENERATED_BODY()
-	
-};
-
 USTRUCT(BlueprintType)
 struct FBlockID
 {
@@ -22,7 +14,7 @@ struct FBlockID
 		ID = 0;
 	}
 
-	FBlockID(int32 source, int32 id)
+	FBlockID(const int32& source, const int32& id)
 	{
 		Source = source;
 		ID = id;
@@ -33,6 +25,11 @@ struct FBlockID
 	UPROPERTY(BlueprintReadWrite, Category="Stats", meta = (ClampMin = 0, ClampMax = 32768))
 	int32 ID;
 
+	bool operator!= (const FBlockID& Other) const
+	{
+		return Other.Source != Source || Other.ID != ID;
+	}
+
 	bool operator== (const FBlockID& other) const
 	{
 		return Equals(other);
@@ -41,6 +38,16 @@ struct FBlockID
 	bool Equals(const FBlockID& other) const
 	{
 		return (Source == other.Source) && (ID == other.ID);
+	}
+
+	static inline FBlockID Air()
+	{
+		return FBlockID(0, 0);
+	}
+
+	static inline FBlockID Invalid()
+	{
+		return FBlockID(0, -1);
 	}
 };
 

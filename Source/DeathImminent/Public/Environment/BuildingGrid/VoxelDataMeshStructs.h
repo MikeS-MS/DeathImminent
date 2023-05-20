@@ -2,14 +2,29 @@
 
 #include "CoreMinimal.h"
 #include "Environment/Blocks/BlockStructs.h"
-#include "ChunkStructs.generated.h"
+#include "VoxelDataMeshStructs.generated.h"
 
 USTRUCT(BlueprintType)
-struct FBlockDataForMeshGeneration
+struct FBlockDataForMarchingCubes
 {
 	GENERATED_BODY()
 
-	FBlockDataForMeshGeneration()
+	FBlockDataForMarchingCubes()
+	{
+		CornersStatus.SetNum(8);
+		CornerLocations.SetNum(8);
+	}
+
+	TArray<int> CornersStatus;
+	TArray<FVector> CornerLocations;
+};
+
+USTRUCT(BlueprintType)
+struct FBlockDataForGreedyMeshGeneration
+{
+	GENERATED_BODY()
+
+		FBlockDataForGreedyMeshGeneration()
 	{
 		Block = FBlockID();
 		Index = 0;
@@ -28,27 +43,28 @@ struct FBlockDataForMeshGeneration
 };
 
 USTRUCT(BlueprintType)
-struct FBlockShape
+struct FGreedyMeshShape
 {
 	GENERATED_BODY()
 
-	FBlockShape()
+		FGreedyMeshShape()
 	{
 		LengthX = 0;
 		LengthY = 0;
 		LengthZ = 0;
-		Blocks = TArray<FBlockDataForMeshGeneration>();
+		Blocks = TArray<FBlockDataForGreedyMeshGeneration>();
 	}
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 LengthX;
+		int32 LengthX;
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 LengthY;
+		int32 LengthY;
 
 	UPROPERTY(BlueprintReadWrite)
-	int32 LengthZ;
+		int32 LengthZ;
 
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockDataForMeshGeneration> Blocks;
+		TArray<FBlockDataForGreedyMeshGeneration> Blocks;
 };
+

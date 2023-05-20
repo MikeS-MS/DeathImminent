@@ -57,6 +57,7 @@ Content/Audio
 Content/FX
 Content/Models
 Content/Temp
+Content/Megascans
 
 # Whitelist PakBlacklist-<BuildConfiguration>.txt files
 !Build/*/
