@@ -1,8 +1,29 @@
+// Copyright MikeSMediaStudios™ 2023
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Environment/Blocks/BlockStructs.h"
+#include "ProceduralMeshComponent.h"
 #include "VoxelDataMeshStructs.generated.h"
+
+USTRUCT(BlueprintType)
+struct FBlockDataForSurfaceNets
+{
+	GENERATED_BODY()
+
+	FBlockDataForSurfaceNets()
+	{
+		IsSurface = false;
+		WorldLocation = FVector::Zero();
+	}
+
+	UPROPERTY(BlueprintReadWrite)
+	bool IsSurface;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector WorldLocation;
+};
 
 USTRUCT(BlueprintType)
 struct FBlockDataForMarchingCubes
@@ -15,7 +36,10 @@ struct FBlockDataForMarchingCubes
 		CornerLocations.SetNum(8);
 	}
 
+	UPROPERTY(BlueprintReadWrite)
 	TArray<int> CornersStatus;
+
+	UPROPERTY(BlueprintReadWrite)
 	TArray<FVector> CornerLocations;
 };
 
@@ -24,7 +48,7 @@ struct FBlockDataForGreedyMeshGeneration
 {
 	GENERATED_BODY()
 
-		FBlockDataForGreedyMeshGeneration()
+	FBlockDataForGreedyMeshGeneration()
 	{
 		Block = FBlockID();
 		Index = 0;
@@ -33,13 +57,16 @@ struct FBlockDataForGreedyMeshGeneration
 	}
 
 	UPROPERTY(BlueprintReadWrite)
-		FBlockID Block;
+	FBlockID Block;
+
 	UPROPERTY(BlueprintReadWrite)
-		int32 Index;
+	int32 Index;
+
 	UPROPERTY(BlueprintReadWrite)
-		FIntVector RelativeLocation;
+	FIntVector RelativeLocation;
+
 	UPROPERTY(BlueprintReadWrite)
-		FVector Center;
+	FVector Center;
 };
 
 USTRUCT(BlueprintType)
@@ -47,7 +74,7 @@ struct FGreedyMeshShape
 {
 	GENERATED_BODY()
 
-		FGreedyMeshShape()
+	FGreedyMeshShape()
 	{
 		LengthX = 0;
 		LengthY = 0;
@@ -56,15 +83,40 @@ struct FGreedyMeshShape
 	}
 
 	UPROPERTY(BlueprintReadWrite)
-		int32 LengthX;
+	int32 LengthX;
 
 	UPROPERTY(BlueprintReadWrite)
-		int32 LengthY;
+	int32 LengthY;
 
 	UPROPERTY(BlueprintReadWrite)
-		int32 LengthZ;
+	int32 LengthZ;
 
 	UPROPERTY(BlueprintReadWrite)
-		TArray<FBlockDataForGreedyMeshGeneration> Blocks;
+	TArray<FBlockDataForGreedyMeshGeneration> Blocks;
 };
 
+USTRUCT(BlueprintType)
+struct FVoxelMeshSectionData
+{
+	GENERATED_BODY();
+
+	FVoxelMeshSectionData()
+	{
+		
+	}
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FVector> Positions;
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<int> Triangles;
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FVector2D> UVs;
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FVector> Normals;
+
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FProcMeshTangent> Tangents;
+};
