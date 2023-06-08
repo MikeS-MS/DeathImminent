@@ -87,7 +87,9 @@ void ABlockoutToolsParent::Tick(float DeltaTime)
 
 void ABlockoutToolsParent::RerunConstructionScript()
 {
-//	RerunConstructionScripts();
+#if WITH_EDITOR
+	RerunConstructionScripts();
+#endif
 }
 
 void ABlockoutToolsParent::BlockoutSetMaterial()

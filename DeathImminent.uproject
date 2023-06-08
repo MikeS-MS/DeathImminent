@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{38D5D00B-4239-C8EE-8B16-F297011FBEE3}",
+	"EngineAssociation": "{2DCB8DDB-4156-7810-3F42-01BC9AC0179D}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -11,7 +11,6 @@
 			"AdditionalDependencies": [
 				"Engine",
 				"CoreUObject",
-				"RealtimeMeshComponent",
 				"GeometryFramework"
 			]
 		}

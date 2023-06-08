@@ -10,7 +10,7 @@
 	"DocsURL": "https://forums.unrealengine.com/community/community-content-tools-and-tutorials/1543449-property-transfer-tool",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/946185f2400d4be9b8d4190e95df86c8",
 	"SupportURL": "mailto:bruno_xavier_@msn.com",
-	"EngineVersion": "5.1.0",
+	"EngineVersion": "5.2.0",
 	"CanContainContent": true,
 	"Installed": true,
 	"Modules": [
