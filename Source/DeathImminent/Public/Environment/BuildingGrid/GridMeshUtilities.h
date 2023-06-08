@@ -56,6 +56,8 @@ private:
 	static void __AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, TArray<FVector>& Positions, TArray<int>& Triangles, TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FVector>* GenericTangents, TArray<FProcMeshTangent>* ProcMeshTangents);
 #pragma endregion
 
+	static void FORCEINLINE __GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatus>& OutBlockStatuses);
+
 #pragma region Surface Nets Algorithm
 	static void __GetBlockDataForSurfaceNets(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, FBlockDataForSurfaceNets& BlockData);
 	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForSurfaceNets& BlockData, const FBlockLocations& CurrentBlockLocations, const int& U, const int& V, TArray<FVector>& OutPositions, TArray<int>& OutTriangles, TArray<FVector2D>& OutUVs);

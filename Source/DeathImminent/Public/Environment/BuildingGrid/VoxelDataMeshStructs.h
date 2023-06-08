@@ -8,6 +8,49 @@
 #include "VoxelDataMeshStructs.generated.h"
 
 USTRUCT(BlueprintType)
+struct FBlockStatus
+{
+	GENERATED_BODY()
+
+	FBlockStatus()
+	{
+		Status = 0;
+		Location = FVector::Zero();
+		GridLocation = FIntVector::ZeroValue;
+	}
+
+	FBlockStatus(const int& InStatus, const FVector& InLocation, const FIntVector& InGridLocation)
+	{
+		Status = InStatus;
+		Location = InLocation;
+		GridLocation = InGridLocation;
+	}
+
+	UPROPERTY(BlueprintReadWrite)
+	int Status;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector Location;
+
+	UPROPERTY(BlueprintReadWrite)
+	FIntVector GridLocation;
+};
+
+template<typename T>
+TArray<int> ConvertStatusToIntArray(const TArray<T>& InStatuses)
+{
+	TArray<int> Result;
+	Result.Reserve(InStatuses.Num());
+
+	for (const T& BlockStatus : InStatuses)
+	{
+		Result.Add(BlockStatus.Status);
+	}
+
+	return Result;
+}
+
+USTRUCT(BlueprintType)
 struct FBlockDataForSurfaceNets
 {
 	GENERATED_BODY()
@@ -15,14 +58,34 @@ struct FBlockDataForSurfaceNets
 	FBlockDataForSurfaceNets()
 	{
 		IsSurface = false;
+		Configuration = 0;
 		WorldLocation = FVector::Zero();
+		Corners.SetNum(8);
+		Connections.SetNum(6);
 	}
 
 	UPROPERTY(BlueprintReadWrite)
 	bool IsSurface;
 
 	UPROPERTY(BlueprintReadWrite)
+	int Configuration;
+
+	UPROPERTY(BlueprintReadWrite)
 	FVector WorldLocation;
+
+	/**
+	 * @brief All 8 that make up the current block's corners. 
+	 * @warning This may not be filled depending on if the current block is a surface block or not.
+	 */
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FBlockStatus> Corners;
+
+	/**
+	 * @brief All 6 blocks around the current one in this order, 0 = Left, Right, Back, Front, Bottom, Top. 
+	 * @warning This may not be filled depending on if the current block is a surface block or not.
+	 */
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FBlockStatus> Connections;
 };
 
 USTRUCT(BlueprintType)
@@ -32,15 +95,11 @@ struct FBlockDataForMarchingCubes
 
 	FBlockDataForMarchingCubes()
 	{
-		CornersStatus.SetNum(8);
-		CornerLocations.SetNum(8);
+		Corners.SetNum(8);
 	}
 
 	UPROPERTY(BlueprintReadWrite)
-	TArray<int> CornersStatus;
-
-	UPROPERTY(BlueprintReadWrite)
-	TArray<FVector> CornerLocations;
+	TArray<FBlockStatus> Corners;
 };
 
 USTRUCT(BlueprintType)
