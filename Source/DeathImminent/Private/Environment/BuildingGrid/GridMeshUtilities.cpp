@@ -1,7 +1,6 @@
 // Copyright MikeSMediaStudios™ 2023
 
 #include "Environment/BuildingGrid/GridMeshUtilities.h"
-
 #include "KismetProceduralMeshLibrary.h"
 #include "Environment/BuildingGrid/Chunk.h"
 #include "Environment/Blocks/BlockStructs.h"

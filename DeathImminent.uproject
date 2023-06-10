@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{2DCB8DDB-4156-7810-3F42-01BC9AC0179D}",
+	"EngineAssociation": "{F6DD37EF-427C-CB92-017B-E18849C0E65B}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -16,11 +16,6 @@
 		}
 	],
 	"Plugins": [
-		{
-			"Name": "BlockoutToolsPlugin",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/d337b97aca8947a893526964e179acfd"
-		},
 		{
 			"Name": "PythonScriptPlugin",
 			"Enabled": true
@@ -42,32 +37,8 @@
 			"Enabled": true
 		},
 		{
-			"Name": "ManualMeshGridSystem",
-			"Enabled": false
-		},
-		{
-			"Name": "FileHelper",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/bec5be3d587f4ff49a61d45d0e81e4c0"
-		},
-		{
-			"Name": "ArrayHelper",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/813e339b92ad4cf587a4cef56bec7020"
-		},
-		{
-			"Name": "PTMTool",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/946185f2400d4be9b8d4190e95df86c8"
-		},
-		{
 			"Name": "JsonBlueprintUtilities",
 			"Enabled": true
-		},
-		{
-			"Name": "AssetsCleaner",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/3caab7c6e81f449296989122c043ae21"
 		},
 		{
 			"Name": "ModelingToolsEditorMode",
@@ -86,12 +57,42 @@
 			"Enabled": true
 		},
 		{
+			"Name": "FileHelper",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/bec5be3d587f4ff49a61d45d0e81e4c0"
+		},
+		{
+			"Name": "AssetsCleaner",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/3caab7c6e81f449296989122c043ae21"
+		},
+		{
+			"Name": "PTMTool",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/946185f2400d4be9b8d4190e95df86c8"
+		},
+		{
+			"Name": "PakLoader",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/fb9820b9b5c24f8ba178b2a11a61063f"
+		},
+		{
+			"Name": "ArrayHelper",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/813e339b92ad4cf587a4cef56bec7020"
+		},
+		{
 			"Name": "VisualStudioTools",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/362651520df94e4fa65492dbcba44ae2",
 			"SupportedTargetPlatforms": [
 				"Win64"
 			]
+		},
+		{
+			"Name": "BlockoutToolsPlugin",
+			"Enabled": true,
+			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/d337b97aca8947a893526964e179acfd"
 		}
 	]
 }

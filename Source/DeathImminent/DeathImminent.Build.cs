@@ -8,9 +8,9 @@ public class DeathImminent : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "EnhancedInput", "OnlineSubsystem", "OnlineSubsystemSteam", "Steamworks", "ProceduralMeshComponent", "SimplexNoise", "GeometryFramework"});
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "EnhancedInput", "OnlineSubsystem", "OnlineSubsystemSteam", "Steamworks", "ProceduralMeshComponent", "SimplexNoise"});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "FileHelper", "SimplexNoise"});
+		PrivateDependencyModuleNames.AddRange(new string[] { "SimplexNoise" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
