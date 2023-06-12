@@ -47,7 +47,27 @@ private:
 
 #pragma region Marching Cubes Algorithm
 	static void __GetBlockDataForMarchingCubes(const int& x, const int& y, const int& z, const FBlockLocations& CurrentBlockPositions, FBlockDataForMarchingCubes& CurrentVoxel);
-	static FORCEINLINE int __GetConfigurationIndex(const TArray<int>& CornersStatus);
+	template<typename T>
+	static FORCEINLINE int __GetConfigurationIndex(const TArray<T>& CornersStatus)
+	{
+		if (CornersStatus.Num() != 8)
+			return 0;
+
+		int ConfigIndex = 0;
+		int CurrentConfigNumber = 1;
+
+		for (int i = 0; i < 8; i++)
+		{
+			const int Status = CornersStatus[i].Status;
+			if (Status != 0)
+			{
+				ConfigIndex |= CurrentConfigNumber;
+			}
+			CurrentConfigNumber *= 2;
+		}
+
+		return ConfigIndex;
+	}
 
 	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, TArray<FVector>& Positions, TArray<int>& Triangles, TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FVector>& Tangents);
 	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, TArray<FVector>& Positions, TArray<int>& Triangles, TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents);
@@ -56,11 +76,12 @@ private:
 	static void __AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, TArray<FVector>& Positions, TArray<int>& Triangles, TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FVector>* GenericTangents, TArray<FProcMeshTangent>* ProcMeshTangents);
 #pragma endregion
 
-	static void FORCEINLINE __GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatus>& OutBlockStatuses);
+	static void FORCEINLINE __GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatusMC>& OutBlockStatuses);
 
 #pragma region Surface Nets Algorithm
 	static void __GetBlockDataForSurfaceNets(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, FBlockDataForSurfaceNets& BlockData);
-	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForSurfaceNets& BlockData, const FBlockLocations& CurrentBlockLocations, const int& U, const int& V, TArray<FVector>& OutPositions, TArray<int>& OutTriangles, TArray<FVector2D>& OutUVs);
+	static FBlockStatusMC __CheckIfSurfaceBlock(const int& x, const int& y, const int& z);
+	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForSurfaceNets& BlockData, const FBlockLocations& CurrentBlockLocations, const int& U, const int& V, const int& Z, TArray<FVector>& OutPositions, TArray<int>& OutTriangles, TArray<FVector2D>& OutUVs);
 #pragma endregion
 
 private:
@@ -79,3 +100,4 @@ private:
 	static const int sc_CornerIndexBFromEdge[12];
 	static const int sc_TrianglePoints[256][16];
 };
+

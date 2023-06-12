@@ -7,48 +7,16 @@
 #include "ProceduralMeshComponent.h"
 #include "VoxelDataMeshStructs.generated.h"
 
-USTRUCT(BlueprintType)
-struct FBlockStatus
+UENUM(BlueprintType)
+enum class ESurfaceNetLocations : uint8
 {
-	GENERATED_BODY()
-
-	FBlockStatus()
-	{
-		Status = 0;
-		Location = FVector::Zero();
-		GridLocation = FIntVector::ZeroValue;
-	}
-
-	FBlockStatus(const int& InStatus, const FVector& InLocation, const FIntVector& InGridLocation)
-	{
-		Status = InStatus;
-		Location = InLocation;
-		GridLocation = InGridLocation;
-	}
-
-	UPROPERTY(BlueprintReadWrite)
-	int Status;
-
-	UPROPERTY(BlueprintReadWrite)
-	FVector Location;
-
-	UPROPERTY(BlueprintReadWrite)
-	FIntVector GridLocation;
+	SNL_Left = 0	UMETA(DisplayName = "Left"),
+	SNL_Right		UMETA(DisplayName = "Right"),
+	SNL_Back		UMETA(DisplayName = "Back"),
+	SNL_Front		UMETA(DisplayName = "Front"),
+	SNL_Bottom		UMETA(DisplayName = "Bottom"),
+	SNL_Top			UMETA(DisplayName = "Top")
 };
-
-template<typename T>
-TArray<int> ConvertStatusToIntArray(const TArray<T>& InStatuses)
-{
-	TArray<int> Result;
-	Result.Reserve(InStatuses.Num());
-
-	for (const T& BlockStatus : InStatuses)
-	{
-		Result.Add(BlockStatus.Status);
-	}
-
-	return Result;
-}
 
 USTRUCT(BlueprintType)
 struct FBlockDataForSurfaceNets
@@ -78,14 +46,43 @@ struct FBlockDataForSurfaceNets
 	 * @warning This may not be filled depending on if the current block is a surface block or not.
 	 */
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockStatus> Corners;
+	TArray<FBlockStatusMC> Corners;
 
 	/**
 	 * @brief All 6 blocks around the current one in this order, 0 = Left, Right, Back, Front, Bottom, Top. 
 	 * @warning This may not be filled depending on if the current block is a surface block or not.
 	 */
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockStatus> Connections;
+	TArray<FBlockStatusMC> Connections;
+};
+
+USTRUCT(BlueprintType)
+struct FBlockStatusMC
+{
+	GENERATED_BODY()
+
+	FBlockStatusMC()
+	{
+		Status = 0;
+		Location = FVector::Zero();
+		GridLocation = FIntVector::ZeroValue;
+	}
+
+	FBlockStatusMC(const int& InStatus, const FVector& InLocation, const FIntVector& InGridLocation)
+	{
+		Status = InStatus;
+		Location = InLocation;
+		GridLocation = InGridLocation;
+	}
+
+	UPROPERTY(BlueprintReadWrite)
+	int Status;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector Location;
+
+	UPROPERTY(BlueprintReadWrite)
+	FIntVector GridLocation;
 };
 
 USTRUCT(BlueprintType)
@@ -99,7 +96,7 @@ struct FBlockDataForMarchingCubes
 	}
 
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockStatus> Corners;
+	TArray<FBlockStatusMC> Corners;
 };
 
 USTRUCT(BlueprintType)
