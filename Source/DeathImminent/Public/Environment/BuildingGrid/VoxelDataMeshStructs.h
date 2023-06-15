@@ -7,68 +7,19 @@
 #include "ProceduralMeshComponent.h"
 #include "VoxelDataMeshStructs.generated.h"
 
-UENUM(BlueprintType)
-enum class ESurfaceNetLocations : uint8
-{
-	SNL_Left = 0	UMETA(DisplayName = "Left"),
-	SNL_Right		UMETA(DisplayName = "Right"),
-	SNL_Back		UMETA(DisplayName = "Back"),
-	SNL_Front		UMETA(DisplayName = "Front"),
-	SNL_Bottom		UMETA(DisplayName = "Bottom"),
-	SNL_Top			UMETA(DisplayName = "Top")
-};
-
 USTRUCT(BlueprintType)
-struct FBlockDataForSurfaceNets
+struct FBlockStatus
 {
 	GENERATED_BODY()
 
-	FBlockDataForSurfaceNets()
-	{
-		IsSurface = false;
-		Configuration = 0;
-		WorldLocation = FVector::Zero();
-		Corners.SetNum(8);
-		Connections.SetNum(6);
-	}
-
-	UPROPERTY(BlueprintReadWrite)
-	bool IsSurface;
-
-	UPROPERTY(BlueprintReadWrite)
-	int Configuration;
-
-	UPROPERTY(BlueprintReadWrite)
-	FVector WorldLocation;
-
-	/**
-	 * @brief All 8 that make up the current block's corners. 
-	 * @warning This may not be filled depending on if the current block is a surface block or not.
-	 */
-	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockStatusMC> Corners;
-
-	/**
-	 * @brief All 6 blocks around the current one in this order, 0 = Left, Right, Back, Front, Bottom, Top. 
-	 * @warning This may not be filled depending on if the current block is a surface block or not.
-	 */
-	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockStatusMC> Connections;
-};
-
-USTRUCT(BlueprintType)
-struct FBlockStatusMC
-{
-	GENERATED_BODY()
-
-	FBlockStatusMC()
+	FBlockStatus()
 	{
 		Status = 0;
 		Location = FVector::Zero();
 		GridLocation = FIntVector::ZeroValue;
 	}
 
-	FBlockStatusMC(const int& InStatus, const FVector& InLocation, const FIntVector& InGridLocation)
+	FBlockStatus(const int& InStatus, const FVector& InLocation, const FIntVector& InGridLocation)
 	{
 		Status = InStatus;
 		Location = InLocation;
@@ -86,6 +37,46 @@ struct FBlockStatusMC
 };
 
 USTRUCT(BlueprintType)
+struct FBlockDataForSurfaceNets
+{
+	GENERATED_BODY()
+
+	FBlockDataForSurfaceNets()
+	{
+		IsSurface = false;
+		IsAir = true;
+		Configuration = 0;
+		WorldLocation = FBlockLocations();
+		GridLocation = FIntVector::ZeroValue;
+		Corners.SetNum(8);
+	}
+
+	UPROPERTY(BlueprintReadWrite)
+	bool IsSurface;
+
+	UPROPERTY(BlueprintReadWrite)
+	bool IsAir;
+
+	UPROPERTY(BlueprintReadWrite)
+	int Configuration;
+
+	UPROPERTY(BlueprintReadWrite)
+	FBlockLocations WorldLocation;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector SmoothedLocation;
+
+	UPROPERTY(BlueprintReadWrite)
+	FIntVector GridLocation;
+	/**
+	 * @brief All 8 that make up the current block's corners. 
+	 * @warning This may not be filled depending on if the current block is a surface block or not.
+	 */
+	UPROPERTY(BlueprintReadWrite)
+	TArray<FBlockStatus> Corners;
+};
+
+USTRUCT(BlueprintType)
 struct FBlockDataForMarchingCubes
 {
 	GENERATED_BODY()
@@ -96,7 +87,7 @@ struct FBlockDataForMarchingCubes
 	}
 
 	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockStatusMC> Corners;
+	TArray<FBlockStatus> Corners;
 };
 
 USTRUCT(BlueprintType)

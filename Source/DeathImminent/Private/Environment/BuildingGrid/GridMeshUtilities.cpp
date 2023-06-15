@@ -140,6 +140,45 @@ void UGridMeshUtilities::MarchingCubes(FVoxelMeshSectionData& MeshData)
 	//MeshSmoothing(MeshData.Positions, 5, 25.f);
 }
 
+void UGridMeshUtilities::SurfaceNetsRework(FVoxelMeshSectionData& MeshData)
+{
+	const int Width = sm_Width + 2;
+	const int Height = sm_Height + 2;
+	//UWorld* World = sm_Chunk->GetWorld();
+	TArray<FBlockDataForSurfaceNets> Blocks;
+	Blocks.SetNum(UGridUtilities::GetArrayDesiredSize(Width, Height));
+
+	for (int z = 0; z < Height; z++)
+	{
+		for (int y = 0; y < Width; y++)
+		{
+			for (int x = 0; x < Width; x++)
+			{
+				FBlockDataForSurfaceNets BlockData;
+				const FBlockLocations BlockLocations = sm_Chunk->ConvertBlockGridPosToWorldPos(x - 1, y - 1, z - 1);
+				__GetBlockDataForSurfaceNets(x, y, z, BlockLocations, BlockData);
+				//if (BlockData.IsSurface) DrawDebugPoint(World, UGridUtilities::ConvertToWorldSpaceFVector(BlockLocations.BottomBackLeft, sm_OwnerTransform), 15.f, FColor::Red, false, 10.f);
+				Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, Width)] = BlockData;
+			}
+		}
+	}
+
+	for (int z = 1; z <= sm_Height; z++)
+	{
+		for (int y = 1; y <= sm_Width; y++)
+		{
+			for (int x = 1; x <= sm_Width; x++)
+			{
+				__AddMeshDataFromBlock(Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, Width)], Blocks, Width, MeshData);
+			}
+		}
+	}
+
+	//MeshSmoothing(MeshData.Positions, 3, 30);
+	//UKismetProceduralMeshLibrary::CalculateTangentsForMesh(MeshData.Positions, MeshData.Triangles, MeshData.UVs, MeshData.Normals, MeshData.Tangents);
+	// Can redo it a couple of times for better smoothing.
+}
+
 //void UGridMeshUtilities::SurfaceNets(FVoxelMeshSectionData& MeshData)
 //{
 //	// Start at x, y and z = -1 to account for the fact
@@ -265,7 +304,7 @@ void UGridMeshUtilities::SurfaceNetsNew(FVoxelMeshSectionData& MeshData)
 				FBlockDataForSurfaceNets BlockData;
 				__GetBlockDataForSurfaceNets(x, y, z, BlockLocations, BlockData);
 
-				__AddMeshDataFromBlock(BlockData, BlockLocations, x, y, z, MeshData.Positions, MeshData.Triangles, MeshData.UVs);
+				//__AddMeshDataFromBlock(BlockData, , MeshData.Positions, MeshData.Triangles, MeshData.UVs);
 			}
 		}
 	}
@@ -806,7 +845,7 @@ void UGridMeshUtilities::__AddMeshDataFromBlock(const FBlockDataForMarchingCubes
 {
 	TRACE_CPUPROFILER_EVENT_SCOPE_STR(TEXT("UGridUtilities::AddMeshDataFromBlock()"))
 
-	const auto& InterpolateVerts = [](const FBlockStatusMC& FirstCorner, const FBlockStatusMC& SecondCorner)
+	const auto& InterpolateVerts = [](const FBlockStatus& FirstCorner, const FBlockStatus& SecondCorner)
 	{
 		float Threshold = 0.0f;
 		if (!FirstCorner.Status && SecondCorner.Status)
@@ -892,161 +931,125 @@ void UGridMeshUtilities::__AddMeshDataFromBlock(const FBlockDataForMarchingCubes
 	}
 }
 
-void UGridMeshUtilities::__GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatusMC>& OutBlockStatuses)
+void UGridMeshUtilities::__GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatus>& OutBlockStatuses)
 {
 	const int32 RightIndex = x + 1;
 	const int32 FrontIndex = y + 1;
 	const int32 TopIndex = z + 1;
 
-	OutBlockStatuses[0] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z)), BlockLocations.BottomBackLeft, FIntVector(x, y, z));
-	OutBlockStatuses[1] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, z)), BlockLocations.BottomBackRight(), FIntVector(RightIndex, y, z));
-	OutBlockStatuses[2] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, z)), BlockLocations.BottomFrontRight(), FIntVector(RightIndex, FrontIndex, z));
-	OutBlockStatuses[3] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, z)), BlockLocations.BottomFrontLeft(), FIntVector(x, FrontIndex, z));
-	OutBlockStatuses[4] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, TopIndex)), BlockLocations.TopBackLeft(), FIntVector(x, y, TopIndex));
-	OutBlockStatuses[5] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, TopIndex)), BlockLocations.TopBackRight(), FIntVector(RightIndex, y ,TopIndex));
-	OutBlockStatuses[6] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, TopIndex)), BlockLocations.TopFrontRight(), FIntVector(RightIndex, FrontIndex, TopIndex));
-	OutBlockStatuses[7] = FBlockStatusMC(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, TopIndex)), BlockLocations.TopFrontLeft(), FIntVector(x, FrontIndex, TopIndex));
+	OutBlockStatuses[0] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z)), BlockLocations.BottomBackLeft, FIntVector(x, y, z));
+	OutBlockStatuses[1] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, z)), BlockLocations.BottomBackRight(), FIntVector(RightIndex, y, z));
+	OutBlockStatuses[2] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, z)), BlockLocations.BottomFrontRight(), FIntVector(RightIndex, FrontIndex, z));
+	OutBlockStatuses[3] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, z)), BlockLocations.BottomFrontLeft(), FIntVector(x, FrontIndex, z));
+	OutBlockStatuses[4] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, TopIndex)), BlockLocations.TopBackLeft(), FIntVector(x, y, TopIndex));
+	OutBlockStatuses[5] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, TopIndex)), BlockLocations.TopBackRight(), FIntVector(RightIndex, y ,TopIndex));
+	OutBlockStatuses[6] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, TopIndex)), BlockLocations.TopFrontRight(), FIntVector(RightIndex, FrontIndex, TopIndex));
+	OutBlockStatuses[7] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, TopIndex)), BlockLocations.TopFrontLeft(), FIntVector(x, FrontIndex, TopIndex));
 }
 
-void UGridMeshUtilities::__GetBlockDataForSurfaceNets(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, FBlockDataForSurfaceNets& BlockData)
+void UGridMeshUtilities::__AddMeshDataFromBlock(const FBlockDataForSurfaceNets& CurrentBlockData, const TArray<FBlockDataForSurfaceNets>& Blocks, const int& BlockArrayWidth, FVoxelMeshSectionData& MeshData)
 {
-	__GetBlockStatuses(x, y, z, BlockLocations, BlockData.Corners);
-
-	BlockData.Configuration = __GetConfigurationIndex(BlockData.Corners);
-	BlockData.IsSurface = sc_EdgeConfigurations[BlockData.Configuration] != 0;
-	BlockData.WorldLocation = BlockLocations.BottomBackLeft;
-
-	if (!BlockData.IsSurface)
+	if (!CurrentBlockData.IsSurface)
 		return;
 
-	const int Left = x - 1;
-	const int Right = x + 1;
-
-	const int Back = y - 1;
-	const int Front = y + 1;
-
-	const int Bottom = z - 1;
-	const int Top = z + 1;
-
-	BlockData.Connections[0] = __CheckIfSurfaceBlock(Left, y, z);
-	BlockData.Connections[1] = __CheckIfSurfaceBlock(Right, y, z);
-
-	BlockData.Connections[2] = __CheckIfSurfaceBlock(x, Back, z);
-	BlockData.Connections[3] = __CheckIfSurfaceBlock(x, Front, z);
-
-	BlockData.Connections[4] = __CheckIfSurfaceBlock(x, y, Bottom);
-	BlockData.Connections[5] = __CheckIfSurfaceBlock(x, y, Top);
-}
-
-FBlockStatusMC UGridMeshUtilities::__CheckIfSurfaceBlock(const int& x, const int& y, const int& z)
-{
-	TArray<FBlockStatusMC> Statuses;
-	Statuses.SetNum(8);
-	const FBlockLocations Locations = sm_Chunk->ConvertBlockGridPosToWorldPos(x, y, z);
-	__GetBlockStatuses(x, y, z, Locations, Statuses);
-
-	FBlockStatusMC BlockStatus;
-	BlockStatus.Status = sc_EdgeConfigurations[__GetConfigurationIndex(Statuses)] != 0;
-	BlockStatus.Location = Locations.BottomBackLeft;
-	BlockStatus.GridLocation = FIntVector(x, y, z);
-	return BlockStatus;
-}
-
-void UGridMeshUtilities::__AddMeshDataFromBlock(const FBlockDataForSurfaceNets& BlockData,
-                                                const FBlockLocations& CurrentBlockLocations, const int& U, const int& V, const int& Z, TArray<FVector>& OutPositions,
-                                                TArray<int>& OutTriangles, TArray<FVector2D>& OutUVs)
-{
-	if (!BlockData.IsSurface)
-		return;
-
-	//const UWorld* World = sm_Chunk->GetWorld();
-
-	const auto& AddMeshData = [&OutPositions, &OutTriangles, &OutUVs, &U, &V](const FVector& FirstLocation, const FVector& SecondLocation, const FVector& ThirdLocation)
+	/**
+	 *	Pass with this order in mind.
+	 *		0 -- 1
+	 *		|    |
+	 *		2 -- 3
+	 */
+	const auto& AddQuad = [&CurrentBlockData, &MeshData](const FVector& FirstLocation, const FVector& SecondLocation, const FVector& ThirdLocation, const FVector& FourthLocation, const FVector& Normal, const FVector& Tangent)
 	{
-		OutTriangles.Add(OutPositions.Add(FirstLocation));
-		OutTriangles.Add(OutPositions.Add(SecondLocation));
-		OutTriangles.Add(OutPositions.Add(ThirdLocation));
+		const int FirstVertex = MeshData.Positions.Add(FirstLocation);
+		const int SecondVertex = MeshData.Positions.Add(SecondLocation);
+		const int ThirdVertex = MeshData.Positions.Add(ThirdLocation);
+		const int FourthVertex = MeshData.Positions.Add(FourthLocation);
 
-		OutUVs.Add(FVector2D(U, V));
-		OutUVs.Add(FVector2D(U, V));
-		OutUVs.Add(FVector2D(U, V));
+		MeshData.Triangles.Add(ThirdVertex);
+		MeshData.Triangles.Add(SecondVertex);
+		MeshData.Triangles.Add(FirstVertex);
+
+		MeshData.Triangles.Add(ThirdVertex);
+		MeshData.Triangles.Add(FourthVertex);
+		MeshData.Triangles.Add(SecondVertex);
+
+		const int& U = CurrentBlockData.GridLocation.X;
+		const int& V = CurrentBlockData.GridLocation.Y;
+
+		MeshData.UVs.Add(FVector2D(U, V));
+		MeshData.UVs.Add(FVector2D(U, V));
+		MeshData.UVs.Add(FVector2D(U, V));
+		MeshData.UVs.Add(FVector2D(U, V));
+
+		MeshData.Normals.Add(Normal);
+		MeshData.Normals.Add(Normal);
+		MeshData.Normals.Add(Normal);
+		MeshData.Normals.Add(Normal);
+
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+	};
+	const auto& GetBlockData = [&Blocks, &BlockArrayWidth](const int& x, const int& y, const int& z)
+	{
+		return Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, BlockArrayWidth)];
+	};
+	const auto& AreCornersActive = [&CurrentBlockData](const int& FirstCorner, const int& SecondCorner, const int& ThirdCorner, const int& FourthCorner)
+	{
+		return (CurrentBlockData.Corners[FirstCorner].Status && CurrentBlockData.Corners[SecondCorner].Status) && (CurrentBlockData.Corners[ThirdCorner].Status && CurrentBlockData.Corners[FourthCorner].Status);
 	};
 
-	//DrawDebugPoint(World, UGridUtilities::ConvertToWorldSpaceFVector(BlockData.WorldLocation, sm_OwnerTransform), 5.f, FColor::Red, false, 10.f);
-	for (int i = 0; i < 6; i++)
+	const FIntVector& CurrentGridLocation = CurrentBlockData.GridLocation;
+	const FBlockDataForSurfaceNets& Left = GetBlockData(CurrentGridLocation.X - 1, CurrentGridLocation.Y, CurrentGridLocation.Z);
+	const FBlockDataForSurfaceNets& Back = GetBlockData(CurrentGridLocation.X, CurrentGridLocation.Y - 1, CurrentGridLocation.Z);
+	const FBlockDataForSurfaceNets& Bottom = GetBlockData(CurrentGridLocation.X, CurrentGridLocation.Y, CurrentGridLocation.Z - 1);
+
+	const FBlockDataForSurfaceNets& BottomRightBackBlock = GetBlockData(CurrentGridLocation.X + 1, CurrentGridLocation.Y, CurrentGridLocation.Z);
+	const FBlockDataForSurfaceNets& BottomRightFrontBlock = GetBlockData(CurrentGridLocation.X + 1, CurrentGridLocation.Y + 1, CurrentGridLocation.Z);
+	const FBlockDataForSurfaceNets& BottomLeftFrontBlock = GetBlockData(CurrentGridLocation.X, CurrentGridLocation.Y + 1, CurrentGridLocation.Z);
+
+	const FBlockDataForSurfaceNets& TopLeftBackBlock = GetBlockData(CurrentGridLocation.X, CurrentGridLocation.Y, CurrentGridLocation.Z + 1);
+	const FBlockDataForSurfaceNets& TopRightBackBlock = GetBlockData(CurrentGridLocation.X + 1, CurrentGridLocation.Y, CurrentGridLocation.Z + 1);
+	const FBlockDataForSurfaceNets& TopRightFrontBlock = GetBlockData(CurrentGridLocation.X + 1, CurrentGridLocation.Y + 1, CurrentGridLocation.Z + 1);
+	const FBlockDataForSurfaceNets& TopLeftFrontBlock = GetBlockData(CurrentGridLocation.X, CurrentGridLocation.Y + 1, CurrentGridLocation.Z + 1);
+
+	if(BottomRightBackBlock.IsAir)
+	//if (AreCornersActive(1, 2, 5, 6))
 	{
-		const FBlockStatusMC BlockStatus = BlockData.Connections[i];
-		if (BlockStatus.Status == 0)
-			continue;
+		// Right face can be added
+		AddQuad(TopRightFrontBlock.SmoothedLocation, TopRightBackBlock.SmoothedLocation, BottomRightFrontBlock.SmoothedLocation, BottomRightBackBlock.SmoothedLocation, FVector(1, 0, 0), FVector(0, -1, 0));
 
-		FBlockStatusMC PairSide;
-		switch (static_cast<ESurfaceNetLocations>(i))
-		{
-		case ESurfaceNetLocations::SNL_Left:
-		{
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Front)];
-			if (PairSide.Status) // Front Side
-				AddMeshData(BlockStatus.Location, PairSide.Location, BlockData.WorldLocation);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Back)];
-			if (PairSide.Status) // Back Side
-				AddMeshData(PairSide.Location, BlockData.WorldLocation, BlockStatus.Location);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Top)];
-			if (PairSide.Status) // Top Side
-				AddMeshData(BlockStatus.Location, BlockData.WorldLocation, PairSide.Location);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Bottom)];
-			if (PairSide.Status) // Bottom Side
-				AddMeshData(BlockStatus.Location, BlockData.WorldLocation, PairSide.Location);
-			break;
-		}
-		case ESurfaceNetLocations::SNL_Right:
-		{
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Back)];
-			if (PairSide.Status) // Back Side
-				AddMeshData(BlockStatus.Location, PairSide.Location, BlockData.WorldLocation);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Front)];
-			if (PairSide.Status) // Front Side
-				AddMeshData(PairSide.Location, BlockData.WorldLocation, BlockStatus.Location);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Bottom)];
-			if (PairSide.Status) // Bottom Side
-				AddMeshData(BlockData.WorldLocation, BlockStatus.Location, PairSide.Location);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Top)];
-			if (PairSide.Status) // Top Side
-				AddMeshData(BlockStatus.Location, BlockData.WorldLocation, PairSide.Location);
-			break;
-		}
-		case ESurfaceNetLocations::SNL_Back:
-		{
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Bottom)];
-			if (PairSide.Status) // Bottom Side
-				AddMeshData(BlockStatus.Location, PairSide.Location, BlockData.WorldLocation);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Top)];
-			if (PairSide.Status) // Top Side
-				AddMeshData(BlockStatus.Location, BlockData.WorldLocation, PairSide.Location);
-			break;
-		}
-		case ESurfaceNetLocations::SNL_Front:
-		{
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Top)];
-			if (PairSide.Status) // Top Side
-				AddMeshData(BlockStatus.Location, PairSide.Location, BlockData.WorldLocation);
-
-			PairSide = BlockData.Connections[static_cast<int>(ESurfaceNetLocations::SNL_Bottom)];
-			if (PairSide.Status) // Bottom Side
-				AddMeshData(BlockStatus.Location, BlockData.WorldLocation, PairSide.Location);
-			break;
-		}
-		default:
-			break;
-		}
-
-		//DrawDebugPoint(World, UGridUtilities::ConvertToWorldSpaceFVector(BlockStatus.Location, sm_OwnerTransform), 5.f, FColor::Red, false, 10.f);
+	}
+	if (BottomLeftFrontBlock.IsAir)
+	//if (AreCornersActive(7, 6, 2, 3))
+	{
+		// Front face can be added
+		AddQuad(TopLeftFrontBlock.SmoothedLocation, TopRightFrontBlock.SmoothedLocation, BottomLeftFrontBlock.SmoothedLocation, BottomRightFrontBlock.SmoothedLocation, FVector(0, 1, 0), FVector(1, 0 ,0));
+	}
+	if (TopLeftBackBlock.IsAir)
+	//if (AreCornersActive(4, 5, 6, 7))
+	{
+		// Top Face can be added
+		AddQuad(TopLeftBackBlock.SmoothedLocation, TopRightBackBlock.SmoothedLocation, TopLeftFrontBlock.SmoothedLocation, TopRightFrontBlock.SmoothedLocation, FVector(0, 0, 1), FVector(1, 0, 0));
+	}
+	if(Left.IsAir)
+	//if (AreCornersActive(0, 3, 4, 7))
+	{
+		// Left Face can be added
+		AddQuad(TopLeftBackBlock.SmoothedLocation, TopLeftFrontBlock.SmoothedLocation, CurrentBlockData.SmoothedLocation, BottomLeftFrontBlock.SmoothedLocation, FVector(-1, 0, 0), FVector(0, 1, 0));
+	}
+	if (Back.IsAir)
+	//if (AreCornersActive(0, 1, 4, 5))
+	{
+		// Back Face can be added	
+		AddQuad(TopRightBackBlock.SmoothedLocation, TopLeftBackBlock.SmoothedLocation, BottomRightBackBlock.SmoothedLocation, CurrentBlockData.SmoothedLocation, FVector(0, -1, 0), FVector(1, 0, 0));
+	}
+	if (Bottom.IsAir)
+	//if (AreCornersActive(0, 1, 2, 3))
+	{
+		// Bottom face can be added
+		AddQuad(BottomLeftFrontBlock.SmoothedLocation, BottomRightFrontBlock.SmoothedLocation, CurrentBlockData.SmoothedLocation, BottomRightBackBlock.SmoothedLocation, FVector(0, 0, -1), FVector(1, 0, 0));
 	}
 }
 

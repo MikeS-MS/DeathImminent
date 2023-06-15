@@ -10,7 +10,7 @@
 	"DocsURL": "https://github.com/RLoris/FileHelperDoc/",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/bec5be3d587f4ff49a61d45d0e81e4c0",
 	"SupportURL": "https://forms.gle/CpekZfTewGZrUVen7",
-	"EngineVersion": "5.2.0",
+	"EngineVersion": "5.1.0",
 	"CanContainContent": true,
 	"Installed": true,
 	"Modules": [

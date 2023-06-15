@@ -10,7 +10,7 @@
 	"DocsURL": "https://github.com/RLoris/ArrayHelperDoc/",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/813e339b92ad4cf587a4cef56bec7020",
 	"SupportURL": "https://forms.gle/CpekZfTewGZrUVen7",
-	"EngineVersion": "5.2.0",
+	"EngineVersion": "5.1.0",
 	"CanContainContent": true,
 	"Installed": true,
 	"Modules": [

@@ -1,18 +1,13 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{F6DD37EF-427C-CB92-017B-E18849C0E65B}",
+	"EngineAssociation": "{38D5D00B-4239-C8EE-8B16-F297011FBEE3}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
 		{
 			"Name": "DeathImminent",
 			"Type": "Runtime",
-			"LoadingPhase": "Default",
-			"AdditionalDependencies": [
-				"Engine",
-				"CoreUObject",
-				"GeometryFramework"
-			]
+			"LoadingPhase": "Default"
 		}
 	],
 	"Plugins": [
@@ -42,15 +37,14 @@
 		},
 		{
 			"Name": "ModelingToolsEditorMode",
-			"Enabled": true
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
 		},
 		{
 			"Name": "StaticMeshEditorModeling",
-			"Enabled": true
-		},
-		{
-			"Name": "GeometryScripting",
-			"Enabled": true
+			"Enabled": false
 		},
 		{
 			"Name": "SimplexNoise",
@@ -72,22 +66,9 @@
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/946185f2400d4be9b8d4190e95df86c8"
 		},
 		{
-			"Name": "PakLoader",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/fb9820b9b5c24f8ba178b2a11a61063f"
-		},
-		{
 			"Name": "ArrayHelper",
 			"Enabled": true,
 			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/813e339b92ad4cf587a4cef56bec7020"
-		},
-		{
-			"Name": "VisualStudioTools",
-			"Enabled": true,
-			"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/product/362651520df94e4fa65492dbcba44ae2",
-			"SupportedTargetPlatforms": [
-				"Win64"
-			]
 		},
 		{
 			"Name": "BlockoutToolsPlugin",
