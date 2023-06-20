@@ -26,13 +26,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	static void MarchingCubes(FVoxelMeshSectionData& MeshData);
 
-	//UFUNCTION(BlueprintCallable)
-	//static void SurfaceNets(FVoxelMeshSectionData& MeshData);
-
-	static void SurfaceNetsRework(FVoxelMeshSectionData& MeshData);
-
 	UFUNCTION(BlueprintCallable)
-	static void SurfaceNetsNew(FVoxelMeshSectionData& MeshData);
+	static void SurfaceNets(FVoxelMeshSectionData& MeshData);
 
 private:
 
@@ -49,7 +44,7 @@ private:
 #pragma endregion
 
 #pragma region Marching Cubes Algorithm
-	static void __GetBlockDataForMarchingCubes(const int& x, const int& y, const int& z, const FBlockLocations& CurrentBlockPositions, FBlockDataForMarchingCubes& CurrentVoxel);
+	static FORCEINLINE void __GetBlockDataForMarchingCubes(const int& x, const int& y, const int& z, const FBlockLocations& CurrentBlockPositions, FBlockDataForMarchingCubes& CurrentVoxel);
 	template<typename T>
 	static FORCEINLINE int __GetConfigurationIndex(const TArray<T>& CornersStatus)
 	{
@@ -76,51 +71,54 @@ private:
 	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, TArray<FVector>& Positions, TArray<int>& Triangles, TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FProcMeshTangent>& Tangents);
 	//static void AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, UE::Geometry::FDynamicMesh3& MeshData, FKConvexElem& Collision);
 
-	static void __AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, TArray<FVector>& Positions, TArray<int>& Triangles, TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FVector>* GenericTangents, TArray<FProcMeshTangent>* ProcMeshTangents);
+	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForMarchingCubes& BlockData, const int& U, const int& V, TArray<FVector>& Positions, TArray<int>& Triangles, TArray<FVector2D>& UVs, TArray<FVector>& Normals, TArray<FVector>* GenericTangents, TArray<FProcMeshTangent>* ProcMeshTangents);
 #pragma endregion
 
-	static void __GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatus>& OutBlockStatuses);
+	static FORCEINLINE void __GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatus>& OutBlockStatuses);
 
 #pragma region Surface Nets Algorithm
-	static FORCEINLINE void __GetBlockDataForSurfaceNets(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, FBlockDataForSurfaceNets& BlockData)
+	static FORCEINLINE void __SN_FillBlockData(const int& x, const int& y, const int& z, const int& Width, const int& Height, TArray<FBlockDataForSurfaceNets>& Blocks);
+	static FORCEINLINE const FBlockDataForSurfaceNets* __SN_GetBlock(const int& x, const int& y, const int& z, const int& Width, const int& Height, const TArray<FBlockDataForSurfaceNets>& Blocks)
 	{
-		__GetBlockStatuses(x, y, z, BlockLocations, BlockData.Corners);
-		BlockData.Configuration = __GetConfigurationIndex(BlockData.Corners);
-		BlockData.IsSurface = sc_EdgeConfigurations[BlockData.Configuration] != 0;
-		BlockData.IsAir = BlockData.Configuration == 0 ? true : false;
-		BlockData.WorldLocation = BlockLocations;
-		BlockData.GridLocation = FIntVector(x, y, z);
-		__FindLocationForCurrentBlock(BlockData);
+		if (((x < 0 || x >= Width) || (y < 0 || y >= Width)) || (z < 0 || z >= Height))
+			return nullptr;
+
+		return &Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, Width)];
 	}
-	static FORCEINLINE void __FindLocationForCurrentBlock(FBlockDataForSurfaceNets& BlockData)
+	static FORCEINLINE bool __SN_IsBlockSurface(const FBlockDataForSurfaceNets& BlockData)
 	{
-		BlockData.SmoothedLocation = BlockData.WorldLocation.BottomBackLeft;
-		return;
-		if (!BlockData.IsSurface)
-			return;
+		if (!BlockData.IsValid) return false;
+		if (!BlockData.Left   || !BlockData.Left->IsValid) return true;
+		if (!BlockData.Right  || !BlockData.Right->IsValid) return true;
+		if (!BlockData.Back   || !BlockData.Back->IsValid) return true;
+		if (!BlockData.Front  || !BlockData.Front->IsValid) return true;
+		if (!BlockData.Bottom || !BlockData.Bottom->IsValid) return true;
+		if (!BlockData.Top    || !BlockData.Top->IsValid) return true;
+		return false;
+	}
+	static FORCEINLINE void __SN_FindSmoothedLocation(FBlockDataForSurfaceNets& BlockData)
+	{
+		if (!BlockData.IsSurface) return;
 
-		//FVector Sum = BlockData.WorldLocation.BottomBackLeft;
-		FVector Sum = FVector::Zero();
 		int Count = 0;
+		FVector Sum = FVector::Zero();
+		__SN_SumForSmoothedLocation(BlockData.Left, Sum, Count);
+		__SN_SumForSmoothedLocation(BlockData.Right, Sum, Count);
+		__SN_SumForSmoothedLocation(BlockData.Back, Sum, Count);
+		__SN_SumForSmoothedLocation(BlockData.Front, Sum, Count);
+		__SN_SumForSmoothedLocation(BlockData.Bottom, Sum, Count);
+		__SN_SumForSmoothedLocation(BlockData.Top, Sum, Count);
 
-		for (int i = 0; i < 8; i++)
-		{
-			const FBlockStatus& CurrentBlockStatus = BlockData.Corners[i];
-
-			if (!CurrentBlockStatus.Status)
-				continue;
-
-
-			Sum += CurrentBlockStatus.Location;
-			Count++;
-		}
-
-		if (Count < 1)
-			return;
-
+		if (Count == 0) return;
 		BlockData.SmoothedLocation = UGameUtilities::Clamp((Sum / static_cast<float>(Count)), BlockData.WorldLocation.BottomBackLeft, BlockData.WorldLocation.TopFrontRight());
 	}
-	static FORCEINLINE void __AddMeshDataFromBlock(const FBlockDataForSurfaceNets& CurrentBlockData, const TArray<FBlockDataForSurfaceNets>& Blocks, const int& BlockArrayWidth, FVoxelMeshSectionData& MeshData);
+	static FORCEINLINE void __SN_SumForSmoothedLocation(const FBlockDataForSurfaceNets* CurrentSide, FVector& Sum, int& Count)
+	{
+		if (CurrentSide && CurrentSide->IsValid) return;
+		Sum += CurrentSide->WorldLocation.BottomBackLeft;
+		Count++;
+	}
+	static FORCEINLINE void __SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNets& CurrentBlockData, FVoxelMeshSectionData& MeshData);
 #pragma endregion
 
 private:

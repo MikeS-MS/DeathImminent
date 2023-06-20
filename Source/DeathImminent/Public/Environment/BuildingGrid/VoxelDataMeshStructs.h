@@ -36,44 +36,52 @@ struct FBlockStatus
 	FIntVector GridLocation;
 };
 
-USTRUCT(BlueprintType)
+namespace SurfaceNetsData
+{
+	enum BlockDataCustomSide
+	{
+		BDCS_Left = 0,
+		BDCS_Right,
+		BDCS_Back,
+		BDCS_Front,
+		BDCS_Bottom,
+		BDCS_Top,
+		BDCS_Last
+	};
+}
+
 struct FBlockDataForSurfaceNets
 {
-	GENERATED_BODY()
 
 	FBlockDataForSurfaceNets()
 	{
 		IsSurface = false;
-		IsAir = true;
-		Configuration = 0;
+		IsValid = true;
 		WorldLocation = FBlockLocations();
 		GridLocation = FIntVector::ZeroValue;
-		Corners.SetNum(8);
 	}
 
-	UPROPERTY(BlueprintReadWrite)
 	bool IsSurface;
 
-	UPROPERTY(BlueprintReadWrite)
-	bool IsAir;
+	bool IsValid;
 
-	UPROPERTY(BlueprintReadWrite)
-	int Configuration;
-
-	UPROPERTY(BlueprintReadWrite)
 	FBlockLocations WorldLocation;
 
-	UPROPERTY(BlueprintReadWrite)
 	FVector SmoothedLocation;
 
-	UPROPERTY(BlueprintReadWrite)
 	FIntVector GridLocation;
-	/**
-	 * @brief All 8 that make up the current block's corners. 
-	 * @warning This may not be filled depending on if the current block is a surface block or not.
-	 */
-	UPROPERTY(BlueprintReadWrite)
-	TArray<FBlockStatus> Corners;
+
+	const FBlockDataForSurfaceNets* Left = nullptr;
+	const FBlockDataForSurfaceNets* Right = nullptr;
+	const FBlockDataForSurfaceNets* Back = nullptr;
+	const FBlockDataForSurfaceNets* Front = nullptr;
+	const FBlockDataForSurfaceNets* Bottom = nullptr;
+	const FBlockDataForSurfaceNets* Top = nullptr;
+
+	const FBlockDataForSurfaceNets* BottomFrontRight = nullptr;
+	const FBlockDataForSurfaceNets* TopBackRight = nullptr;
+	const FBlockDataForSurfaceNets* TopFrontRight = nullptr;
+	const FBlockDataForSurfaceNets* TopFrontLeft = nullptr;
 };
 
 USTRUCT(BlueprintType)
