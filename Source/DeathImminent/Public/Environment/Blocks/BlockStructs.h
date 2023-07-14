@@ -25,7 +25,7 @@ struct FBlockLocations
 
 	FORCEINLINE FVector Center() const
 	{
-		return BottomBackLeft + (CachedBlockSize / 2);
+		return BottomBackLeft + (CachedBlockSize / 2.f);
 	}
 
 	FORCEINLINE FVector BottomBackRight() const
@@ -176,3 +176,15 @@ FORCEINLINE uint32 GetTypeHash(const FBlockID& Thing)
 	return Hash;
 }
 #endif
+
+//
+//#if WITH_DEV_AUTOMATION_TESTS
+//IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
+//
+//inline bool FBlockSizeTest::RunTest(const FString& Parameters)
+//{
+//	UE_LOG(LogTemp, Error, TEXT("%lluB"), sizeof(FBlock));
+//	return true;
+//}
+//
+//#endif

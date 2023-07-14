@@ -35,53 +35,84 @@ struct FBlockStatus
 	UPROPERTY(BlueprintReadWrite)
 	FIntVector GridLocation;
 };
+struct FBlockDataForCustomMeshing;
 
-namespace SurfaceNetsData
+struct FBlockDataArrayForCustomMeshing
 {
-	enum BlockDataCustomSide
+	FBlockDataArrayForCustomMeshing(TArray<FBlockDataForCustomMeshing>& BlocksArray, const int& BlocksArrayWidth, const int BlocksArrayHeight) : Blocks(BlocksArray), Width(BlocksArrayWidth), Height(BlocksArrayHeight)
 	{
-		BDCS_Left = 0,
-		BDCS_Right,
-		BDCS_Back,
-		BDCS_Front,
-		BDCS_Bottom,
-		BDCS_Top,
-		BDCS_Last
-	};
-}
+		
+	}
+
+	TArray<FBlockDataForCustomMeshing>& Blocks;
+	const int Width;
+	const int Height;
+};
+
+struct FBlockDataForCustomMeshing
+{
+	FBlockDataForCustomMeshing()
+	{
+		IsValid = false;
+		IsSurface = false;
+		NeedsSmoothing = false;
+		GridLocation = FIntVector::ZeroValue;
+		SmoothedLocation = FVector::Zero();
+		Sides.SetNum(6);
+		Corners.SetNum(8);
+	}
+
+	~FBlockDataForCustomMeshing()
+	{
+		Sides.Empty();
+		Corners.Empty();
+	}
+
+	bool IsValid;
+	bool IsSurface;
+	bool NeedsSmoothing;
+	FBlockLocations Bounds;
+	FIntVector GridLocation;
+	FVector SmoothedLocation;
+	TArray<FBlockDataForCustomMeshing*> Sides;
+	TArray<FBlockDataForCustomMeshing*> Corners;
+};
 
 struct FBlockDataForSurfaceNets
 {
-
 	FBlockDataForSurfaceNets()
 	{
+		IsValid = false;
 		IsSurface = false;
-		IsValid = true;
 		WorldLocation = FBlockLocations();
 		GridLocation = FIntVector::ZeroValue;
+		Corners.SetNum(8);
+		Sides.SetNum(6);
 	}
 
+	bool IsValid;
 	bool IsSurface;
 
-	bool IsValid;
-
 	FBlockLocations WorldLocation;
-
 	FVector SmoothedLocation;
-
 	FIntVector GridLocation;
 
-	const FBlockDataForSurfaceNets* Left = nullptr;
-	const FBlockDataForSurfaceNets* Right = nullptr;
-	const FBlockDataForSurfaceNets* Back = nullptr;
-	const FBlockDataForSurfaceNets* Front = nullptr;
-	const FBlockDataForSurfaceNets* Bottom = nullptr;
-	const FBlockDataForSurfaceNets* Top = nullptr;
+	TArray<FBlockDataForSurfaceNets*> Corners;
+	TArray<FBlockDataForSurfaceNets*> Sides;
+};
 
-	const FBlockDataForSurfaceNets* BottomFrontRight = nullptr;
-	const FBlockDataForSurfaceNets* TopBackRight = nullptr;
-	const FBlockDataForSurfaceNets* TopFrontRight = nullptr;
-	const FBlockDataForSurfaceNets* TopFrontLeft = nullptr;
+struct FBlockDataArrayForSurfaceNets
+{
+	FBlockDataArrayForSurfaceNets() = delete;
+
+	FBlockDataArrayForSurfaceNets(TArray<FBlockDataForSurfaceNets>& BlocksArray, const int& BlocksArrayWidth, const int& BlocksArrayHeight) : Blocks(BlocksArray), Width(BlocksArrayWidth), Height(BlocksArrayHeight)
+	{
+	}
+
+	TArray<FBlockDataForSurfaceNets>& Blocks;
+	const int Width;
+	const int Height;
+
 };
 
 USTRUCT(BlueprintType)

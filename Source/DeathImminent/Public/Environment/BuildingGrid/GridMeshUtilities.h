@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "GridUtilities.h"
 #include "Utilities/GameUtilities.h"
 #include "GridMeshUtilities.generated.h"
@@ -28,6 +29,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	static void SurfaceNets(FVoxelMeshSectionData& MeshData);
+
+	UFUNCTION(BlueprintCallable)
+	static void CustomMeshing(FVoxelMeshSectionData& MeshData);
 
 private:
 
@@ -77,48 +81,157 @@ private:
 	static FORCEINLINE void __GetBlockStatuses(const int& x, const int& y, const int& z, const FBlockLocations& BlockLocations, TArray<FBlockStatus>& OutBlockStatuses);
 
 #pragma region Surface Nets Algorithm
-	static FORCEINLINE void __SN_FillBlockData(const int& x, const int& y, const int& z, const int& Width, const int& Height, TArray<FBlockDataForSurfaceNets>& Blocks);
-	static FORCEINLINE const FBlockDataForSurfaceNets* __SN_GetBlock(const int& x, const int& y, const int& z, const int& Width, const int& Height, const TArray<FBlockDataForSurfaceNets>& Blocks)
+	static FORCEINLINE void __SN_FillBlockData(const int& x, const int& y, const int& z, const int& Offset, const FBlockDataArrayForSurfaceNets& BlocksArray);
+	static FORCEINLINE FBlockDataForSurfaceNets* __SN_GetBlock(const int& x, const int& y, const int& z, const FBlockDataArrayForSurfaceNets& BlocksArray)
 	{
-		if (((x < 0 || x >= Width) || (y < 0 || y >= Width)) || (z < 0 || z >= Height))
-			return nullptr;
-
-		return &Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, Width)];
+		int Index = 0;
+		if (!UGridUtilities::IsValidArrayIndex(x, y, z, BlocksArray.Width, BlocksArray.Height, Index) || !BlocksArray.Blocks.IsValidIndex(Index)) return nullptr;
+		return &BlocksArray.Blocks[Index];
 	}
-	static FORCEINLINE bool __SN_IsBlockSurface(const FBlockDataForSurfaceNets& BlockData)
+	static FORCEINLINE void __SN_CheckSurface(const int& x, const int& y, const int& z, const FBlockDataArrayForSurfaceNets& BlocksArray)
 	{
-		if (!BlockData.IsValid) return false;
-		if (!BlockData.Left   || !BlockData.Left->IsValid) return true;
-		if (!BlockData.Right  || !BlockData.Right->IsValid) return true;
-		if (!BlockData.Back   || !BlockData.Back->IsValid) return true;
-		if (!BlockData.Front  || !BlockData.Front->IsValid) return true;
-		if (!BlockData.Bottom || !BlockData.Bottom->IsValid) return true;
-		if (!BlockData.Top    || !BlockData.Top->IsValid) return true;
-		return false;
+		FBlockDataForSurfaceNets* BlockData = __SN_GetBlock(x, y, z, BlocksArray);
+		if (!BlockData) return;
+		const bool Start = BlockData->IsValid;
+		for (int i = 1; i < 8; i++)
+		{
+			if (Start == __SN_IsValidBlock(BlockData->Corners[i])) continue;
+			BlockData->IsSurface = true;
+			break;
+		}
 	}
-	static FORCEINLINE void __SN_FindSmoothedLocation(FBlockDataForSurfaceNets& BlockData)
+	static FORCEINLINE bool __SN_IsValidBlock(const FBlockDataForSurfaceNets* BlockData)
 	{
-		if (!BlockData.IsSurface) return;
-
-		int Count = 0;
-		FVector Sum = FVector::Zero();
-		__SN_SumForSmoothedLocation(BlockData.Left, Sum, Count);
-		__SN_SumForSmoothedLocation(BlockData.Right, Sum, Count);
-		__SN_SumForSmoothedLocation(BlockData.Back, Sum, Count);
-		__SN_SumForSmoothedLocation(BlockData.Front, Sum, Count);
-		__SN_SumForSmoothedLocation(BlockData.Bottom, Sum, Count);
-		__SN_SumForSmoothedLocation(BlockData.Top, Sum, Count);
-
-		if (Count == 0) return;
-		BlockData.SmoothedLocation = UGameUtilities::Clamp((Sum / static_cast<float>(Count)), BlockData.WorldLocation.BottomBackLeft, BlockData.WorldLocation.TopFrontRight());
+		return BlockData && BlockData->IsValid;
 	}
-	static FORCEINLINE void __SN_SumForSmoothedLocation(const FBlockDataForSurfaceNets* CurrentSide, FVector& Sum, int& Count)
+	static FORCEINLINE void __SN_FindSmoothedLocation(const int& x, const int& y, const int& z, const FBlockDataArrayForSurfaceNets& BlocksArray)
 	{
-		if (CurrentSide && CurrentSide->IsValid) return;
-		Sum += CurrentSide->WorldLocation.BottomBackLeft;
+		FBlockDataForSurfaceNets* BlockData = __SN_GetBlock(x, y, z, BlocksArray);
+		if (!BlockData->IsSurface) return;
+
+		int Count = 1;
+		FVector Sum = BlockData->SmoothedLocation;
+
+		for(int i = 0; i < 6; i++)
+		{
+			const FBlockDataForSurfaceNets* Side = BlockData->Sides[i];
+			if (!Side || !Side->IsSurface) continue;
+			Sum += Side->SmoothedLocation;
+			Count++;
+		}
+		BlockData->SmoothedLocation = UGameUtilities::Clamp((Sum / static_cast<float>(Count)), BlockData->WorldLocation.BottomBackLeft, BlockData->WorldLocation.TopFrontRight());
+	}
+	static FORCEINLINE void __SN_SumForSmoothPosition(const FBlockDataForSurfaceNets* CurrentSide, FVector& Sum, int& Count)
+	{
+		if (!CurrentSide || !CurrentSide->IsSurface) return;
+		Sum += CurrentSide->SmoothedLocation;
 		Count++;
 	}
 	static FORCEINLINE void __SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNets& CurrentBlockData, FVoxelMeshSectionData& MeshData);
+#pragma endregion
+
+#pragma region Custom Meshing Algorithm
+	static FORCEINLINE void __CM_FillBlockData(const int& x, const int& y, const int& z, const int& Offset, const FBlockDataArrayForCustomMeshing& BlocksArray);
+	static FORCEINLINE FBlockDataForCustomMeshing* __CM_GetSide(const int& x, const int& y, const int& z, const FBlockDataArrayForCustomMeshing& BlocksArray)
+	{
+		int Index = 0;
+		if (!UGridUtilities::IsValidArrayIndex(x, y, z, BlocksArray.Width, BlocksArray.Height, Index) || !BlocksArray.Blocks.IsValidIndex(Index)) return nullptr;
+		return &BlocksArray.Blocks[Index];
+	}
+	static FORCEINLINE void __CM_CheckSurface(const int& x, const int& y, const int& z, const FBlockDataArrayForCustomMeshing& BlocksArray)
+	{
+		FBlockDataForCustomMeshing& BlockData = BlocksArray.Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, BlocksArray.Width)];
+		if (!BlockData.IsValid) return;
+
+		for (int i = 0; i < 6; i++)
+		{
+			if (__CM_IsBlockValid(BlockData.Sides[i])) continue;
+
+			BlockData.IsSurface = true;
+			BlockData.NeedsSmoothing = true;
+			break;
+		}
+
+		if (!BlockData.IsSurface) return;
+
+		for (int i = 1; i < 8; i++)
+		{
+			FBlockDataForCustomMeshing* Corner = BlockData.Corners[i];
+			if (!Corner) continue;
+			Corner->NeedsSmoothing = true;
+		}
+	}
+	static FORCEINLINE bool __CM_IsBlockValid(const FBlockDataForCustomMeshing* BlockData)
+	{
+		return BlockData && BlockData->IsValid;
+	}
+	static FORCEINLINE void __CM_SetNeighborsSmoothing(const int& x, const int& y, const int& z, const FBlockDataArrayForCustomMeshing& BlocksArray)
+	{
+		FBlockDataForCustomMeshing& BlockData = BlocksArray.Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, BlocksArray.Width)];
+		if (!BlockData.IsSurface) return;
+
+		for (int i = 0; i < 8; i++)
+		{
+			FBlockDataForCustomMeshing* Corner = BlockData.Corners[i];
+			if (!Corner) continue;
+
+			Corner->NeedsSmoothing = true;
+		}
+	}
+	static FORCEINLINE void __CM_FindSmoothLocationsForBlock(const int& x, const int& y, const int& z, const FBlockDataArrayForCustomMeshing& BlocksArray)
+	{
+		FBlockDataForCustomMeshing& BlockData = BlocksArray.Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, BlocksArray.Width)];
+
+		if (!BlockData.IsSurface) return;
+
+		const FBox Constraint(BlockData.Bounds.BottomBackLeft, BlockData.Bounds.TopFrontRight());
+
+		BlockData.IsSurface = false;
+		__CM_SmoothPosition(&BlockData, Constraint);
+		BlockData.IsSurface = true;
+
+		for (int i = 1; i < 8; i++)
+		{
+			__CM_SmoothPosition(BlockData.Corners[i], Constraint);
+		}
+	}
+	static FORCEINLINE void __CM_SmoothPosition(FBlockDataForCustomMeshing* BlockData, const FBox& Constraint)
+	{
+		if (!BlockData || BlockData->IsSurface) return;
+
+		int Count = 1;
+		FVector Sum = BlockData->SmoothedLocation;
+
+		for (int i = 0; i < 6; i++)
+		{
+			const FBlockDataForCustomMeshing* Side = BlockData->Sides[i];
+			if (!Side || !Side->NeedsSmoothing) continue;
+
+			Sum += Side->SmoothedLocation;
+			Count++;
+		}
+
+		BlockData->SmoothedLocation = UGameUtilities::Clamp((Sum / Count), Constraint.Min, Constraint.Max);
+	}
+	static FORCEINLINE bool __CM_CanSnapSmoothOnSide(const int& GridLocation, const int& Boundary, const FIntVector& Start, const FIntVector& End, const FBlockDataArrayForCustomMeshing& BlocksArray)
+	{
+		if (GridLocation != Boundary) return false;
+
+		for (int x = Start.X; x <= End.X; x++)
+		{
+			for (int y = Start.Y; y <= End.Y; y++)
+			{
+				for (int z = Start.Z; z <= End.Z; z++)
+				{
+					const FBlockDataForCustomMeshing* BlockData = __CM_GetSide(x, y, z, BlocksArray);
+
+					if (BlockData && BlockData->IsSurface) return true;
+				}
+			}
+		}
+		return false;
+	}
+	static FORCEINLINE void __CM_AddMeshDataFromBlock(const FBlockDataForCustomMeshing& BlockData, FVoxelMeshSectionData& MeshData);
 #pragma endregion
 
 private:
