@@ -167,6 +167,47 @@ struct FBlockID
 	static const FBlockID Invalid;
 };
 
+struct Block
+{
+	Block() : Block(false, false, false, 0, 1, 0, 0, 0, 0)
+	{
+		
+	}
+
+	Block(const bool& InIsSurface, 
+		  const bool& InIsSolid, 
+		  const bool& InIsIndestructible, 
+		  const int16& InSource, 
+		  const int16& InID, 
+		  const int32& InCurrentHealth,
+		  const float& InX,
+		  const float& InY,
+		  const float& InZ)
+	:
+	IsSurface(InIsSurface),
+	IsSolid(InIsSolid),
+	IsIndestructible(InIsIndestructible),
+	Source(InSource),
+	ID(InID),
+	CurrentHealth(InCurrentHealth),
+	X(InX),
+	Y(InY),
+	Z(InZ)
+	{
+		
+	}
+
+	bool IsSurface;
+	bool IsSolid;
+	bool IsIndestructible;
+	int16 Source;
+	int16 ID;
+	int32 CurrentHealth;
+	float X;
+	float Y;
+	float Z;
+};
+
 #if UE_BUILD_DEBUG
 uint32 GetTypeHash(const FBlockID& Thing);
 #else // optimize by inlining in shipping and development builds
@@ -177,14 +218,14 @@ FORCEINLINE uint32 GetTypeHash(const FBlockID& Thing)
 }
 #endif
 
-//
-//#if WITH_DEV_AUTOMATION_TESTS
-//IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
-//
-//inline bool FBlockSizeTest::RunTest(const FString& Parameters)
-//{
-//	UE_LOG(LogTemp, Error, TEXT("%lluB"), sizeof(FBlock));
-//	return true;
-//}
-//
-//#endif
+
+#if WITH_DEV_AUTOMATION_TESTS
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
+
+inline bool FBlockSizeTest::RunTest(const FString& Parameters)
+{
+	UE_LOG(LogTemp, Error, TEXT("%lluB"), sizeof(Block));
+	return true;
+}
+
+#endif

@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Chunk.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
-#include "Kismet/KismetMathLibrary.h"
 #include "GridUtilities.h"
 #include "Utilities/GameUtilities.h"
 #include "GridMeshUtilities.generated.h"
@@ -26,6 +26,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	static void MarchingCubes(FVoxelMeshSectionData& MeshData);
+
+	UFUNCTION(BlueprintCallable)
+	static void SurfaceNetsFindLocations(AChunk* Chunk);
 
 	UFUNCTION(BlueprintCallable)
 	static void SurfaceNets(FVoxelMeshSectionData& MeshData);
@@ -104,30 +107,37 @@ private:
 	{
 		return BlockData && BlockData->IsValid;
 	}
-	static FORCEINLINE void __SN_FindSmoothedLocation(const int& x, const int& y, const int& z, const FBlockDataArrayForSurfaceNets& BlocksArray)
+	static FORCEINLINE void __SN_FindSmoothedLocation(const int& x, const int& y, const int& z, AChunk* Chunk)
 	{
-		FBlockDataForSurfaceNets* BlockData = __SN_GetBlock(x, y, z, BlocksArray);
-		if (!BlockData->IsSurface) return;
+		Block* BlockData = Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z);
+		if (!BlockData || !BlockData->IsSurface) return;
 
+		const FBlockLocations Bounds = Chunk->ConvertBlockGridPosToWorldPos(x, y, z);
 		int Count = 1;
-		FVector Sum = BlockData->SmoothedLocation;
+		FVector Sum = FVector(BlockData->X, BlockData->Y, BlockData->Z);
 
-		for(int i = 0; i < 6; i++)
-		{
-			const FBlockDataForSurfaceNets* Side = BlockData->Sides[i];
-			if (!Side || !Side->IsSurface) continue;
-			Sum += Side->SmoothedLocation;
-			Count++;
-		}
-		BlockData->SmoothedLocation = UGameUtilities::Clamp((Sum / static_cast<float>(Count)), BlockData->WorldLocation.BottomBackLeft, BlockData->WorldLocation.TopFrontRight());
+		__SN_SumForSmoothPosition(Chunk->_GetBlockAtGridLocationOptimizedForLocal(x - 1, y, z), Sum, Count);
+		__SN_SumForSmoothPosition(Chunk->_GetBlockAtGridLocationOptimizedForLocal(x + 1, y, z), Sum, Count);
+		__SN_SumForSmoothPosition(Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y - 1, z), Sum, Count);
+		__SN_SumForSmoothPosition(Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y + 1, z), Sum, Count);
+		__SN_SumForSmoothPosition(Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z - 1), Sum, Count);
+		__SN_SumForSmoothPosition(Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z + 1), Sum, Count);
+
+		const FTransform& Transform = Chunk->GetTransform();
+		const FVector SmoothedLocationLocal = UGridUtilities::ConvertToLocalSpaceVector(Sum / static_cast<float>(Count), Transform);
+		const FVector SmoothedLocation = UGridUtilities::ConvertToWorldSpaceFVector(UGameUtilities::Clamp(SmoothedLocationLocal, Bounds.BottomBackLeft, Bounds.TopFrontRight()), Transform);
+
+		BlockData->X = SmoothedLocation.X;
+		BlockData->Y = SmoothedLocation.Y;
+		BlockData->Z = SmoothedLocation.Z;
 	}
-	static FORCEINLINE void __SN_SumForSmoothPosition(const FBlockDataForSurfaceNets* CurrentSide, FVector& Sum, int& Count)
+	static FORCEINLINE void __SN_SumForSmoothPosition(const Block* CurrentSide, FVector& Sum, int& Count)
 	{
 		if (!CurrentSide || !CurrentSide->IsSurface) return;
-		Sum += CurrentSide->SmoothedLocation;
+		Sum += FVector(CurrentSide->X, CurrentSide->Y, CurrentSide->Z);
 		Count++;
 	}
-	static FORCEINLINE void __SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNets& CurrentBlockData, FVoxelMeshSectionData& MeshData);
+	static FORCEINLINE void __SN_AddMeshDataFromBlock(const int& x, const int& y, const int& z, FVoxelMeshSectionData& MeshData);
 #pragma endregion
 
 #pragma region Custom Meshing Algorithm
@@ -242,7 +252,7 @@ private:
 	static FTransform& sm_OwnerTransform;
 	static FVector& sm_OwnerLocation;
 	static FVector& sm_OwnerExtent;
-	static TArray<int32>& sm_BlocksArray;
+	static TArray<Block>& sm_BlocksArray;
 	static AChunk* sm_Chunk;
 
 	static const int sc_EdgeConfigurations[256];

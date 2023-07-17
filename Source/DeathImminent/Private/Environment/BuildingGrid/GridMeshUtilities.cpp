@@ -5,6 +5,7 @@
 #include "Environment/BuildingGrid/Chunk.h"
 #include "Environment/Blocks/BlockStructs.h"
 #include "Environment/BuildingGrid/BuildingGrid.h"
+#include <chrono>
 
 void UGridMeshUtilities::SetDataForMeshingAlgorithms(AChunk* Chunk)
 {
@@ -94,41 +95,11 @@ void UGridMeshUtilities::MarchingCubes(FVoxelMeshSectionData& MeshData)
 	}
 }
 
-void UGridMeshUtilities::SurfaceNets(FVoxelMeshSectionData& MeshData)
+void UGridMeshUtilities::SurfaceNetsFindLocations(AChunk* Chunk)
 {
-	const int LookAheadBlocks = sm_Chunk->m__ContainingGrid->LookAheadBlocks;
-	const int Width = sm_Width + (2 * LookAheadBlocks);
-	const int Height = sm_Height + (2 * LookAheadBlocks);
-	const int LastIndexXY = sm_Width + LookAheadBlocks;
-	const int LastIndexZ = sm_Height + LookAheadBlocks;
-	TArray<FBlockDataForSurfaceNets> SurfaceBlocks;
-	SurfaceBlocks.SetNum(UGridUtilities::GetArrayDesiredSize(Width, Height));
-	FBlockDataArrayForSurfaceNets ArrayData(SurfaceBlocks, Width, Height);
-	TArray<FBlockDataForSurfaceNets*> Surfaces;
-
-	for(int x = -LookAheadBlocks; x < LastIndexXY; x++)
-	{
-		for (int y = -LookAheadBlocks; y < LastIndexXY; y++)
-		{
-			for (int z = -LookAheadBlocks; z < LastIndexZ; z++)
-			{
-				__SN_FillBlockData(x, y, z, LookAheadBlocks, ArrayData);
-			}
-		}
-	}
-
-	for (int x = 0; x < Width; x++)
-	{
-		for (int y = 0; y < Width; y++)
-		{
-			for (int z = 0; z < Height; z++)
-			{
-				__SN_CheckSurface(x, y, z, ArrayData);
-			}
-		}
-	}
-
-	const int Iterations = sm_Chunk->m__ContainingGrid->SurfaceNetsIterations;
+	const int& Iterations = Chunk->m__ContainingGrid->SurfaceNetsIterations;
+	const int& Width = Chunk->m__WidthInBlocks;
+	const int& Height = Chunk->m__HeightInBlocks;
 
 	for (int i = 0; i < Iterations; i++)
 	{
@@ -138,62 +109,25 @@ void UGridMeshUtilities::SurfaceNets(FVoxelMeshSectionData& MeshData)
 			{
 				for (int z = 0; z < Height; z++)
 				{
-					__SN_FindSmoothedLocation(x, y, z, ArrayData);
+					__SN_FindSmoothedLocation(x, y, z, Chunk);
 				}
 			}
 		}
 	}
+}
 
-	for (int x = LookAheadBlocks; x < LastIndexXY; x++)
+void UGridMeshUtilities::SurfaceNets(FVoxelMeshSectionData& MeshData)
+{
+	for (int x = 0; x < sm_Width; x++)
 	{
-		for (int y = LookAheadBlocks; y < LastIndexXY; y++)
+		for (int y = 0; y < sm_Width; y++)
 		{
-			for (int z = LookAheadBlocks; z < LastIndexZ; z++)
+			for (int z = 0; z < sm_Height; z++)
 			{
-				FBlockDataForSurfaceNets& BlockData = ArrayData.Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, Width)];
-				__SN_AddMeshDataFromBlock(BlockData, MeshData);
+				__SN_AddMeshDataFromBlock(x, y, z, MeshData);
 			}
 		}
 	}
-
-	//const UWorld* World = sm_Chunk->GetWorld();
-	//const auto& DrawSurface = [&World, &ArrayData](const FBlockDataForSurfaceNets& BlockData)
-	//{
-	//	const FVector Center = UGridUtilities::ConvertToWorldSpaceFVector(BlockData.SmoothedLocation, sm_OwnerTransform);
-	//	const FVector BottomBackLeft = UGridUtilities::ConvertToWorldSpaceFVector(BlockData.WorldLocation.BottomBackLeft, sm_OwnerTransform);
-	//	DrawDebugPoint(World, Center, 5, FColor::Red, false, 10);
-	//	DrawDebugLine(World, BottomBackLeft, Center, FColor::Green, false, 10);
-	//	DrawDebugPoint(World, BottomBackLeft, 5, BlockData.IsValid ? FColor::Yellow : FColor::Blue, false, 10);
-
-	//	//const FIntVector GridLocation = BlockData.GridLocation;
-	//	//for (int X = GridLocation.X; X <= GridLocation.X + 1; X++)
-	//	//{
-	//	//	for (int Y = GridLocation.Y; Y <= GridLocation.Y + 1; Y++)
-	//	//	{
-	//	//		for (int Z = GridLocation.Z; Z <= GridLocation.Z + 1; Z++)
-	//	//		{
-	//	//			if ((X == GridLocation.X && Y == GridLocation.Y) && Z == GridLocation.Z) continue;
-	//	//			const FBlockDataForSurfaceNets* Side = __SN_GetBlock(X, Y, Z, ArrayData);
-	//	//			if (!Side || Side->IsSurface) continue;
-
-	//	//			DrawDebugPoint(World, UGridUtilities::ConvertToWorldSpaceFVector(Side->WorldLocation.BottomBackLeft, sm_OwnerTransform), 5, BlockData.IsValid ? FColor::Purple : FColor::Cyan, false, 10);
-	//	//		}
-	//	//	}
-	//	//}
-
-	//};
-	//for (int x = LookAheadBlocks - 1; x < LastIndexXY + 1; x++)
-	//{
-	//	for (int y = LookAheadBlocks - 1; y < LastIndexXY + 1; y++)
-	//	{
-	//		for (int z = LookAheadBlocks - 1; z < LastIndexZ + 1; z++)
-	//		{
-	//			FBlockDataForSurfaceNets& BlockData = ArrayData.Blocks[UGridUtilities::ConvertToArrayIndex(x, y, z, Width)];
-	//			if (!BlockData.IsSurface) continue;
-	//			DrawSurface(BlockData);
-	//		}
-	//	}
-	//}
 }
 
 void UGridMeshUtilities::CustomMeshing(FVoxelMeshSectionData& MeshData)
@@ -266,7 +200,7 @@ bool UGridMeshUtilities::__IsBlockValidForShape(TArray<bool>& VisitedBlocks, con
 	if (VisitedBlocks[BlockIndex])
 		return false;
 
-	const int32& BlockID = sm_BlocksArray[BlockIndex];
+	const int32& BlockID = sm_BlocksArray[BlockIndex].Source;
 
 	if (!UGridUtilities::IsValidBlock(BlockID))
 		return false;
@@ -439,7 +373,7 @@ FBlockDataForGreedyMeshGeneration UGridMeshUtilities::__GetBlockDataForGreedyMes
 	FBlockDataForGreedyMeshGeneration BlockData;
 	const FVector BlockLocationLocal = ((FVector(Location) * (sm_BlockSize)) - sm_OwnerExtent + sm_BlockSize / 2);
 
-	UGridUtilities::UnpackInt32ToInt16(sm_BlocksArray[Index], BlockData.Block.Source, BlockData.Block.ID);
+	//UGridUtilities::UnpackInt32ToInt16(sm_BlocksArray[Index], BlockData.Block.Source, BlockData.Block.ID);
 
 	BlockData.Index = Index;
 	BlockData.RelativeLocation = Location;
@@ -869,58 +803,59 @@ void UGridMeshUtilities::__GetBlockStatuses(const int& x, const int& y, const in
 	const int32 FrontIndex = y + 1;
 	const int32 TopIndex = z + 1;
 
-	OutBlockStatuses[0] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z)), BlockLocations.BottomBackLeft, FIntVector(x, y, z));
-	OutBlockStatuses[1] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, z)), BlockLocations.BottomBackRight(), FIntVector(RightIndex, y, z));
-	OutBlockStatuses[2] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, z)), BlockLocations.BottomFrontRight(), FIntVector(RightIndex, FrontIndex, z));
-	OutBlockStatuses[3] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, z)), BlockLocations.BottomFrontLeft(), FIntVector(x, FrontIndex, z));
-	OutBlockStatuses[4] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, TopIndex)), BlockLocations.TopBackLeft(), FIntVector(x, y, TopIndex));
-	OutBlockStatuses[5] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, TopIndex)), BlockLocations.TopBackRight(), FIntVector(RightIndex, y ,TopIndex));
-	OutBlockStatuses[6] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, TopIndex)), BlockLocations.TopFrontRight(), FIntVector(RightIndex, FrontIndex, TopIndex));
-	OutBlockStatuses[7] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, TopIndex)), BlockLocations.TopFrontLeft(), FIntVector(x, FrontIndex, TopIndex));
+	//OutBlockStatuses[0] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z)), BlockLocations.BottomBackLeft, FIntVector(x, y, z));
+	//OutBlockStatuses[1] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, z)), BlockLocations.BottomBackRight(), FIntVector(RightIndex, y, z));
+	//OutBlockStatuses[2] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, z)), BlockLocations.BottomFrontRight(), FIntVector(RightIndex, FrontIndex, z));
+	//OutBlockStatuses[3] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, z)), BlockLocations.BottomFrontLeft(), FIntVector(x, FrontIndex, z));
+	//OutBlockStatuses[4] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, TopIndex)), BlockLocations.TopBackLeft(), FIntVector(x, y, TopIndex));
+	//OutBlockStatuses[5] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, y, TopIndex)), BlockLocations.TopBackRight(), FIntVector(RightIndex, y ,TopIndex));
+	//OutBlockStatuses[6] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(RightIndex, FrontIndex, TopIndex)), BlockLocations.TopFrontRight(), FIntVector(RightIndex, FrontIndex, TopIndex));
+	//OutBlockStatuses[7] = FBlockStatus(UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, FrontIndex, TopIndex)), BlockLocations.TopFrontLeft(), FIntVector(x, FrontIndex, TopIndex));
 }
 
 void UGridMeshUtilities::__SN_FillBlockData(const int& x, const int& y, const int& z, const int& Offset, const FBlockDataArrayForSurfaceNets& BlocksArray)
 {
-	const FIntVector& GridLocation = FIntVector(x + Offset, y + Offset, z + Offset);
-	FBlockDataForSurfaceNets& BlockData = BlocksArray.Blocks[UGridUtilities::ConvertToArrayIndex(GridLocation.X, GridLocation.Y, GridLocation.Z, BlocksArray.Width)];
-	BlockData.GridLocation = GridLocation;
-	BlockData.IsValid = UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z));
-	BlockData.WorldLocation = sm_Chunk->ConvertBlockGridPosToWorldPos(x, y, z);
-	BlockData.SmoothedLocation = BlockData.WorldLocation.Center();
+	//const FIntVector& GridLocation = FIntVector(x + Offset, y + Offset, z + Offset);
+	//FBlockDataForSurfaceNets& BlockData = BlocksArray.Blocks[UGridUtilities::ConvertToArrayIndex(GridLocation.X, GridLocation.Y, GridLocation.Z, BlocksArray.Width)];
+	//BlockData.GridLocation = GridLocation;
+	//BlockData.IsValid = UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z));
+	//BlockData.WorldLocation = sm_Chunk->ConvertBlockGridPosToWorldPos(x, y, z);
+	//BlockData.SmoothedLocation = BlockData.WorldLocation.Center();
 
-	BlockData.Corners[0] = &BlockData;
-	BlockData.Corners[1] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y, GridLocation.Z, BlocksArray);
-	BlockData.Corners[2] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
-	BlockData.Corners[3] = __SN_GetBlock(GridLocation.X, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
-	BlockData.Corners[4] = __SN_GetBlock(GridLocation.X, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
-	BlockData.Corners[5] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
-	BlockData.Corners[6] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
-	BlockData.Corners[7] = __SN_GetBlock(GridLocation.X, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[0] = &BlockData;
+	//BlockData.Corners[1] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y, GridLocation.Z, BlocksArray);
+	//BlockData.Corners[2] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
+	//BlockData.Corners[3] = __SN_GetBlock(GridLocation.X, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
+	//BlockData.Corners[4] = __SN_GetBlock(GridLocation.X, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[5] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[6] = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[7] = __SN_GetBlock(GridLocation.X, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
 
-	BlockData.Sides[0] = __SN_GetBlock(GridLocation.X - 1, GridLocation.Y, GridLocation.Z, BlocksArray);
-	BlockData.Sides[1] = BlockData.Corners[1];
-	BlockData.Sides[2] = __SN_GetBlock(GridLocation.X, GridLocation.Y - 1, GridLocation.Z, BlocksArray);
-	BlockData.Sides[3] = BlockData.Corners[3];
-	BlockData.Sides[4] = __SN_GetBlock(GridLocation.X, GridLocation.Y, GridLocation.Z - 1, BlocksArray);
-	BlockData.Sides[5] = BlockData.Corners[4];
+	//BlockData.Sides[0] = __SN_GetBlock(GridLocation.X - 1, GridLocation.Y, GridLocation.Z, BlocksArray);
+	//BlockData.Sides[1] = BlockData.Corners[1];
+	//BlockData.Sides[2] = __SN_GetBlock(GridLocation.X, GridLocation.Y - 1, GridLocation.Z, BlocksArray);
+	//BlockData.Sides[3] = BlockData.Corners[3];
+	//BlockData.Sides[4] = __SN_GetBlock(GridLocation.X, GridLocation.Y, GridLocation.Z - 1, BlocksArray);
+	//BlockData.Sides[5] = BlockData.Corners[4];
 }
 
-void UGridMeshUtilities::__SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNets& CurrentBlockData, FVoxelMeshSectionData& MeshData)
+void UGridMeshUtilities::__SN_AddMeshDataFromBlock(const int& x, const int& y, const int& z, FVoxelMeshSectionData& MeshData)
 {
-	if (!CurrentBlockData.IsSurface)
+	Block* CurrentBlockData = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z);
+	if (!CurrentBlockData || !CurrentBlockData->IsSurface)
 		return;
 
 	const auto& GetNormal = [](const FVector& CurrentVertex, const FVector& VertexBefore, const FVector& VertexAfter)
 	{
 		return FVector::CrossProduct(VertexBefore - CurrentVertex, VertexAfter - CurrentVertex).GetSafeNormal();
 	};
-	const auto& IsSurfaceSide = [](const FBlockDataForSurfaceNets* CurrentSide)
+	const auto& IsSurfaceSide = [](const Block* CurrentSide)
 	{
 		return CurrentSide && CurrentSide->IsSurface;
 	};
-	const auto& IsValidSide = [](const FBlockDataForSurfaceNets* CurrentSide)
+	const auto& IsValidSide = [](const Block* CurrentSide)
 	{
-		return CurrentSide && CurrentSide->IsValid;
+		return CurrentSide && CurrentSide->IsSolid;
 	};
 	/**
 	 *	Pass with this order in mind.
@@ -928,7 +863,7 @@ void UGridMeshUtilities::__SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNet
 	 *		|    |
 	 *		3 -- 4
 	 */
-	const auto& TryAddQuad = [&IsValidSide, &IsSurfaceSide, &GetNormal, &MeshData](TArray<const FBlockDataForSurfaceNets*> Sides, const int& U, const int& V)
+	const auto& TryAddQuad = [&IsValidSide, &IsSurfaceSide, &GetNormal, &MeshData](TArray<const Block*> Sides, const int& U, const int& V)
 	{
 		for (int i = 0; i < 4; i++)
 		{
@@ -936,15 +871,19 @@ void UGridMeshUtilities::__SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNet
 				return;
 		}
 
-		const FBlockDataForSurfaceNets* SideClockWise = Sides[4];
-		const FBlockDataForSurfaceNets* SideCounterClockWise = Sides[5];
+		const Block* SideClockWise = Sides[4];
+		const Block* SideCounterClockWise = Sides[5];
 		const bool bIsValidSideClockwise = IsValidSide(SideClockWise);
 		const bool bIsValidSideCounterClockWise = IsValidSide(SideCounterClockWise);
 		if (bIsValidSideClockwise == bIsValidSideCounterClockWise) return;
 
-		FVector Normal = GetNormal(Sides[0]->SmoothedLocation, Sides[2]->SmoothedLocation, Sides[1]->SmoothedLocation);
-		FVector Tangent = (Sides[0]->SmoothedLocation - Sides[1]->SmoothedLocation).GetSafeNormal2D();
-		//const float Dot = FVector::DotProduct(SideClockWise->SmoothedLocation, Normal);
+		const FVector FirstSide = UGridUtilities::ConvertToLocalSpaceVector(FVector(Sides[0]->X, Sides[0]->Y, Sides[0]->Z), sm_OwnerTransform);
+		const FVector SecondSide =  UGridUtilities::ConvertToLocalSpaceVector(FVector(Sides[1]->X, Sides[1]->Y, Sides[1]->Z), sm_OwnerTransform);
+		const FVector ThirdSide =  UGridUtilities::ConvertToLocalSpaceVector(FVector(Sides[2]->X, Sides[2]->Y, Sides[2]->Z), sm_OwnerTransform);
+		const FVector FourthSide =  UGridUtilities::ConvertToLocalSpaceVector(FVector(Sides[3]->X, Sides[3]->Y, Sides[3]->Z), sm_OwnerTransform);
+
+		FVector Normal = GetNormal(FirstSide, ThirdSide, SecondSide);
+		FVector Tangent = (FirstSide - SecondSide).GetSafeNormal2D();
 
 		if (bIsValidSideClockwise)
 		{
@@ -953,10 +892,10 @@ void UGridMeshUtilities::__SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNet
 		}
 
 		// Add the plane
-		const int FirstVertex = MeshData.Positions.Add(Sides[0]->SmoothedLocation);
-		const int SecondVertex = MeshData.Positions.Add(Sides[1]->SmoothedLocation);
-		const int ThirdVertex = MeshData.Positions.Add(Sides[2]->SmoothedLocation);
-		const int FourthVertex = MeshData.Positions.Add(Sides[3]->SmoothedLocation);
+		const int FirstVertex = MeshData.Positions.Add(FirstSide);
+		const int SecondVertex = MeshData.Positions.Add(SecondSide);
+		const int ThirdVertex = MeshData.Positions.Add(ThirdSide);
+		const int FourthVertex = MeshData.Positions.Add(FourthSide);
 
 		if(!bIsValidSideClockwise)
 		{
@@ -996,53 +935,43 @@ void UGridMeshUtilities::__SN_AddMeshDataFromBlock(const FBlockDataForSurfaceNet
 		MeshData.Tangents.Add(ProcMeshTangent);
 	};
 
-	//const FIntVector& GridLocation = CurrentBlockData.GridLocation;
-	//const FBlockDataForSurfaceNets* Right = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y, GridLocation.Z, *CurrentBlockData.BlocksArrayData);
-	//const FBlockDataForSurfaceNets* Front = __SN_GetBlock(GridLocation.X, GridLocation.Y + 1, GridLocation.Z, *CurrentBlockData.BlocksArrayData);
-	//const FBlockDataForSurfaceNets* Top = __SN_GetBlock(GridLocation.X, GridLocation.Y, GridLocation.Z + 1, *CurrentBlockData.BlocksArrayData);
+	const Block* Right = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x + 1, y, z);
+	const Block* FrontRight = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x + 1, y + 1, z);
+	const Block* Front = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y + 1, z);
 
-	//const FBlockDataForSurfaceNets* FrontRight = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z, *CurrentBlockData.BlocksArrayData);
-	//const FBlockDataForSurfaceNets* TopFront = __SN_GetBlock(GridLocation.X, GridLocation.Y + 1, GridLocation.Z + 1, *CurrentBlockData.BlocksArrayData);
-	//const FBlockDataForSurfaceNets* TopRight = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y, GridLocation.Z + 1, *CurrentBlockData.BlocksArrayData);
-	//const FBlockDataForSurfaceNets* TopFrontRight = __SN_GetBlock(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z + 1, *CurrentBlockData.BlocksArrayData);
+	const Block* Top = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z + 1);
+	const Block* TopRight = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x + 1, y, z + 1);
+	const Block* TopFrontRight = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x + 1, y + 1, z + 1);
+	const Block* TopFront = sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y + 1, z + 1);
 
-	const FBlockDataForSurfaceNets* Right = CurrentBlockData.Sides[1];
-	const FBlockDataForSurfaceNets* Front = CurrentBlockData.Sides[3];
-	const FBlockDataForSurfaceNets* Top = CurrentBlockData.Sides[5];
-
-	const FBlockDataForSurfaceNets* FrontRight = CurrentBlockData.Corners[2];
-	const FBlockDataForSurfaceNets* TopFront = CurrentBlockData.Corners[7];
-	const FBlockDataForSurfaceNets* TopRight = CurrentBlockData.Corners[5];
-	const FBlockDataForSurfaceNets* TopFrontRight = CurrentBlockData.Corners[6];
-
-	TryAddQuad({ TopRight, Top, Right, &CurrentBlockData, TopFrontRight, TopRight }, CurrentBlockData.GridLocation.X, CurrentBlockData.GridLocation.Z);
-	TryAddQuad({ Top, TopFront, &CurrentBlockData, Front, TopFrontRight, TopFront }, CurrentBlockData.GridLocation.Y, CurrentBlockData.GridLocation.Z);
-	TryAddQuad({ Front, FrontRight, &CurrentBlockData, Right, TopFrontRight, FrontRight }, CurrentBlockData.GridLocation.X, CurrentBlockData.GridLocation.Y);
+	TryAddQuad({ TopRight, Top, Right, CurrentBlockData, TopFrontRight, TopRight }, x, z);
+	TryAddQuad({ Top, TopFront, CurrentBlockData, Front, TopFrontRight, TopFront }, y, z);
+	TryAddQuad({ Front, FrontRight, CurrentBlockData, Right, TopFrontRight, FrontRight }, x, y);
 }
 
 void UGridMeshUtilities::__CM_FillBlockData(const int& x, const int& y, const int& z, const int& Offset, const FBlockDataArrayForCustomMeshing& BlocksArray)
 {
-	const FIntVector GridLocation = FIntVector(x + Offset, y + Offset, z + Offset);
-	FBlockDataForCustomMeshing& BlockData = BlocksArray.Blocks[UGridUtilities::ConvertToArrayIndex(GridLocation.X, GridLocation.Y, GridLocation.Z, BlocksArray.Width)];
-	BlockData.GridLocation = GridLocation;
-	BlockData.Bounds = sm_Chunk->ConvertBlockGridPosToWorldPos(x, y, z);
-	BlockData.SmoothedLocation = BlockData.Bounds.BottomBackLeft;
-	BlockData.IsValid = UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z));
-	BlockData.Sides[0] = __CM_GetSide(GridLocation.X - 1, GridLocation.Y, GridLocation.Z, BlocksArray);
-	BlockData.Sides[1] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y, GridLocation.Z, BlocksArray);
-	BlockData.Sides[2] = __CM_GetSide(GridLocation.X, GridLocation.Y - 1, GridLocation.Z, BlocksArray);
-	BlockData.Sides[3] = __CM_GetSide(GridLocation.X, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
-	BlockData.Sides[4] = __CM_GetSide(GridLocation.X, GridLocation.Y, GridLocation.Z - 1, BlocksArray);
-	BlockData.Sides[5] = __CM_GetSide(GridLocation.X, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
+	//const FIntVector GridLocation = FIntVector(x + Offset, y + Offset, z + Offset);
+	//FBlockDataForCustomMeshing& BlockData = BlocksArray.Blocks[UGridUtilities::ConvertToArrayIndex(GridLocation.X, GridLocation.Y, GridLocation.Z, BlocksArray.Width)];
+	//BlockData.GridLocation = GridLocation;
+	//BlockData.Bounds = sm_Chunk->ConvertBlockGridPosToWorldPos(x, y, z);
+	//BlockData.SmoothedLocation = BlockData.Bounds.BottomBackLeft;
+	//BlockData.IsValid = UGridUtilities::IsValidBlock(sm_Chunk->_GetBlockAtGridLocationOptimizedForLocal(x, y, z));
+	//BlockData.Sides[0] = __CM_GetSide(GridLocation.X - 1, GridLocation.Y, GridLocation.Z, BlocksArray);
+	//BlockData.Sides[1] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y, GridLocation.Z, BlocksArray);
+	//BlockData.Sides[2] = __CM_GetSide(GridLocation.X, GridLocation.Y - 1, GridLocation.Z, BlocksArray);
+	//BlockData.Sides[3] = __CM_GetSide(GridLocation.X, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
+	//BlockData.Sides[4] = __CM_GetSide(GridLocation.X, GridLocation.Y, GridLocation.Z - 1, BlocksArray);
+	//BlockData.Sides[5] = __CM_GetSide(GridLocation.X, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
 
-	BlockData.Corners[0] = &BlockData;
-	BlockData.Corners[1] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y, GridLocation.Z, BlocksArray);
-	BlockData.Corners[2] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
-	BlockData.Corners[3] = __CM_GetSide(GridLocation.X, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
-	BlockData.Corners[4] = __CM_GetSide(GridLocation.X, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
-	BlockData.Corners[5] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
-	BlockData.Corners[6] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
-	BlockData.Corners[7] = __CM_GetSide(GridLocation.X, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[0] = &BlockData;
+	//BlockData.Corners[1] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y, GridLocation.Z, BlocksArray);
+	//BlockData.Corners[2] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
+	//BlockData.Corners[3] = __CM_GetSide(GridLocation.X, GridLocation.Y + 1, GridLocation.Z, BlocksArray);
+	//BlockData.Corners[4] = __CM_GetSide(GridLocation.X, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[5] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[6] = __CM_GetSide(GridLocation.X + 1, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
+	//BlockData.Corners[7] = __CM_GetSide(GridLocation.X, GridLocation.Y + 1, GridLocation.Z + 1, BlocksArray);
 }
 
 void UGridMeshUtilities::__CM_AddMeshDataFromBlock(const FBlockDataForCustomMeshing& BlockData,
@@ -1105,7 +1034,7 @@ int32& UGridMeshUtilities::sm_BlockSize = *new int(0);
 FTransform& UGridMeshUtilities::sm_OwnerTransform = *new FTransform();
 FVector& UGridMeshUtilities::sm_OwnerLocation = *new FVector();
 FVector& UGridMeshUtilities::sm_OwnerExtent = *new FVector();
-TArray<int32>& UGridMeshUtilities::sm_BlocksArray = *new TArray<int32>();
+TArray<Block>& UGridMeshUtilities::sm_BlocksArray = *new TArray<Block>();
 AChunk* UGridMeshUtilities::sm_Chunk = nullptr;
 
 const int UGridMeshUtilities::sc_EdgeConfigurations[256] =
