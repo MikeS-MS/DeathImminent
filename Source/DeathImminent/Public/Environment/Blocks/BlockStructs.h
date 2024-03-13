@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Utilities/GeneralStructs.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "BlockStructs.generated.h"
 
@@ -127,104 +128,59 @@ public:
 };
 
 USTRUCT(BlueprintType)
-struct FBlockID
+struct FBlock
 {
 	GENERATED_BODY()
 
-	FBlockID()
+	UPROPERTY(BlueprintReadOnly)
+	double Fullness;
+
+	UPROPERTY(BlueprintReadWrite)
+	FBaseID BlockID;
+
+
+	FBlock() : Fullness(0.0)
 	{
-		Source = 0;
-		ID = 0;
+
 	}
 
-	FBlockID(const int32& source, const int32& id)
+	FBlock(const FBaseID& ID, const double InFullness)
 	{
-		Source = source;
-		ID = id;
+		BlockID = ID;
+		Fullness = InFullness;
 	}
 
-	UPROPERTY(BlueprintReadWrite, Category="Stats", meta = (ClampMin = 0, ClampMax = 32768))
-	int32 Source;
-	UPROPERTY(BlueprintReadWrite, Category="Stats", meta = (ClampMin = 0, ClampMax = 32768))
-	int32 ID;
-
-	bool operator!= (const FBlockID& Other) const
+	double SetFullness(const double NewFullness, double& Overflow)
 	{
-		return Other.Source != Source || Other.ID != ID;
+		if (NewFullness > 1.0)
+			Overflow = NewFullness - 1.0;
+		Fullness = FMath::Clamp(NewFullness, 0.0, 1.0);
+		return Fullness;
 	}
 
-	bool operator== (const FBlockID& other) const
+	bool IsFull() const
 	{
-		return Equals(other);
+		return Fullness >= 1.0;
 	}
 
-	bool Equals(const FBlockID& other) const
-	{
-		return (Source == other.Source) && (ID == other.ID);
-	}
+	static const FBlock Air;
+	static const FBlock Invalid;
 
-	static const FBlockID Air;
-	static const FBlockID Invalid;
+	static const FBaseID AirID;
+	static const FBaseID InvalidID;
 };
 
-struct Block
-{
-	Block() : Block(false, false, false, 0, 1, 0, 0, 0, 0)
-	{
-		
-	}
-
-	Block(const bool& InIsSurface, 
-		  const bool& InIsSolid, 
-		  const bool& InIsIndestructible, 
-		  const int16& InSource, 
-		  const int16& InID, 
-		  const int32& InCurrentHealth,
-		  const float& InX,
-		  const float& InY,
-		  const float& InZ)
-	:
-	IsSurface(InIsSurface),
-	IsSolid(InIsSolid),
-	IsIndestructible(InIsIndestructible),
-	Source(InSource),
-	ID(InID),
-	CurrentHealth(InCurrentHealth),
-	X(InX),
-	Y(InY),
-	Z(InZ)
-	{
-		
-	}
-
-	bool IsSurface;
-	bool IsSolid;
-	bool IsIndestructible;
-	int16 Source;
-	int16 ID;
-	int32 CurrentHealth;
-	float X;
-	float Y;
-	float Z;
-};
-
-#if UE_BUILD_DEBUG
-uint32 GetTypeHash(const FBlockID& Thing);
-#else // optimize by inlining in shipping and development builds
-FORCEINLINE uint32 GetTypeHash(const FBlockID& Thing)
-{
-	uint32 Hash = FCrc::MemCrc32(&Thing, sizeof(FBlockID));
-	return Hash;
-}
-#endif
-
+inline const FBaseID FBlock::AirID = FBaseID(0);
+inline const FBaseID FBlock::InvalidID = FBaseID(-1);
+inline const FBlock FBlock::Air = FBlock(AirID, 0.0);
+inline const FBlock FBlock::Invalid = FBlock(InvalidID, 0.0);
 
 #if WITH_DEV_AUTOMATION_TESTS
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
 
 inline bool FBlockSizeTest::RunTest(const FString& Parameters)
 {
-	UE_LOG(LogTemp, Error, TEXT("%lluB"), sizeof(Block));
+	UE_LOG(LogTemp, Error, TEXT("%lluB"), sizeof(FBlock));
 	return true;
 }
 
