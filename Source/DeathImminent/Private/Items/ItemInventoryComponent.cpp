@@ -1,10 +1,14 @@
+// Copyright MikeSMediaStudios™
+
 #include "Items/ItemInventoryComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Systems/ItemManager.h"
+#include "NPC/SurvivalPlayer.h"
+#include "Utilities/GameUtilities.h"
 
 UItemInventoryComponent::UItemInventoryComponent()
 {
-	SetIsReplicated(true);
+	SetIsReplicatedByDefault(true);
 	__Setup();
 }
 
@@ -12,9 +16,9 @@ void UItemInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME(UItemInventoryComponent, mb__IsPlayerInventory)
-	DOREPLIFETIME(UItemInventoryComponent, mb__AllowItemUsageFromDifferentInventory)
-	DOREPLIFETIME(UItemInventoryComponent, m__Size)
+	DOREPLIFETIME(UItemInventoryComponent, mb_IsPlayerInventory)
+	DOREPLIFETIME(UItemInventoryComponent, mb_AllowItemUsageFromDifferentInventory)
+	DOREPLIFETIME(UItemInventoryComponent, m_Size)
 	DOREPLIFETIME_CONDITION(UItemInventoryComponent, m__TargetItemInventory, COND_OwnerOnly)
 	DOREPLIFETIME_CONDITION(UItemInventoryComponent, m__Items, COND_OwnerOnly)
 }
@@ -122,19 +126,61 @@ void UItemInventoryComponent::MoveItemToInventory_Implementation(const FItemSnap
 	if (!IsValid(ItemToBeMovedInstance))
 		return;
 
+	const int32 CurrentAmount = ItemToBeMovedInstance->GetCurrentAmount();
 	FAddItemOperationResult Result;
-	Result.AmountLeft = AmountToMove == -1 ? ItemToBeMovedInstance->GetCurrentAmount() : AmountToMove;
+	Result.AmountLeft = AmountToMove == -1 ? CurrentAmount : AmountToMove;
+	const bool EqualsCurrentAmount = Result.AmountLeft == CurrentAmount;
 
 	Result = InventoryToMoveInto->__AddItem(ItemID, Result.AmountLeft);
 
-	if (Result.AmountLeft == 0)
+	if (EqualsCurrentAmount)
 	{
-		ItemToBeMovedInstance->Destroy();
-		ItemToBeMovedInventory->m__Items[ItemToBeMoved.Index] = nullptr;
-		return;
+		if (Result.AmountLeft == 0)
+		{
+			ItemToBeMovedInstance->Destroy();
+			ItemToBeMovedInventory->m__Items[ItemToBeMoved.Index] = nullptr;
+			return;
+		}
 	}
 
-	ItemToBeMovedInstance->__SetCurrentAmount(Result.AmountLeft, false, true);
+	ItemToBeMovedInstance->__SetCurrentAmount(Result.AmountLeft == 0 ? CurrentAmount - AmountToMove : Result.AmountLeft, false, true);
+}
+
+void UItemInventoryComponent::UseItemAtIndex_Implementation(ASurvivalPlayer* User, const FItemSnapshot ItemSnapshot)
+{
+	UItemInventoryComponent* InventoryToUseItemIn = ItemSnapshot.OwningInventory;
+	if (!IsValid(User) || !IsValid(InventoryToUseItemIn))
+		return;
+
+	if (!InventoryToUseItemIn->m__Items.IsValidIndex(ItemSnapshot.Index))
+		return;
+
+	if (!InventoryToUseItemIn->IsItemAtIndexEqual(ItemSnapshot))
+		return;
+
+	ABaseItem* Item = InventoryToUseItemIn->m__Items[ItemSnapshot.Index];
+	if (!IsValid(Item))
+		return;
+
+	UItemInventoryComponent* UserItemInventory = User->GetItemInventoryComponent();
+
+	if (!IsValid(UserItemInventory))
+		return;
+
+	if (UserItemInventory != InventoryToUseItemIn)
+	{
+		if (!UserItemInventory->mb_IsPlayerInventory)
+			return;
+
+		if (!UserItemInventory->IsTargetInventory(InventoryToUseItemIn))
+			return;
+
+		if (!InventoryToUseItemIn->mb_AllowItemUsageFromDifferentInventory)
+			return;
+	}
+
+
+	Item->__UseItem(User);
 }
 
 FItemSnapshot UItemInventoryComponent::CreateSnapshotForItemAt(const int32 Index)
@@ -177,15 +223,21 @@ bool UItemInventoryComponent::IsItemAtIndexEqualToID(const FBaseID& ItemID, cons
 
 void UItemInventoryComponent::__Setup()
 {
-	m__Items.SetNum(m__Size);
+	m__Items.SetNum(m_Size);
 }
 
 void UItemInventoryComponent::__SetTargetInventory_Implementation(UItemInventoryComponent* ItemInventoryComponent)
 {
-	if (!mb__IsPlayerInventory)
+	if (!mb_IsPlayerInventory)
 		return;
 
 	if (ItemInventoryComponent == this)
+		return;
+
+	if (IsValid(m__TargetItemInventory))
+		m__TargetItemInventory->m__TargetedByInventories.Remove(this);
+
+	if (ItemInventoryComponent->mb_IsPlayerInventory && !ItemInventoryComponent->mb_AllowOtherPlayersToOpen)
 		return;
 
 	m__TargetItemInventory = ItemInventoryComponent;
@@ -193,6 +245,7 @@ void UItemInventoryComponent::__SetTargetInventory_Implementation(UItemInventory
 	if (!IsValid(m__TargetItemInventory))
 		return;
 
+	m__TargetItemInventory->m__TargetedByInventories.AddUnique(this);
 	__ReceiveItemsForInventory(m__TargetItemInventory, m__TargetItemInventory->m__Items);
 }
 
@@ -205,29 +258,44 @@ void UItemInventoryComponent::__ReceiveItemsForInventory_Implementation(UItemInv
 	ItemInventoryComponent->m__Items = Items;
 }
 
-ABaseItem* UItemInventoryComponent::__SetItem(ABaseItem* Item, const int32 Index)
+void UItemInventoryComponent::__SetItem_Implementation(ABaseItem* Item, const int32 Index)
 {
-	AActor* Owner = GetOwner();
-	if (!IsValid(Item) || (Owner && !Owner->HasAuthority()) || IsValid(m__Items[Index]))
-		return nullptr;
+	if (!m__Items.IsValidIndex(Index))
+		return;
 
+	ABaseItem* PreviousItem = m__Items[Index];
+
+	if (IsValid(PreviousItem))
+		PreviousItem->Destroy();
+
+	m__Items[Index] = Item;
+
+	if (!IsValid(Item))
+		return;
+
+	AActor* Owner = GetOwner();
 	Item->SetOwner(Owner);
 	Item->AttachToActor(Owner, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, false));
 	Item->m__OwningInventory = this;
-
-	return m__Items[Index] = Item;
+	Item->m__ItemIndex = Index;
 }
 
 FAddItemOperationResult UItemInventoryComponent::__AddItem(const FBaseID& ItemID, const int32 Amount, const int32 SetAtIndex)
 {
 	FAddItemOperationResult Result;
 	Result.AmountLeft = Amount;
-	// Is the ItemID Valid?
+
+	CHECK_INSTANCE_RETURN(UItemManager, ItemManager, Result)
+
+	FBaseID CorrectedID = ItemID;
+	if (!ItemManager->IsItemValid(ItemID, CorrectedID))
+		return Result;
+
 	int32 AmountLeft = Amount;
 	int32 StartIndex = SetAtIndex;
 
 	if (!m__Items.IsValidIndex(StartIndex))
-		StartIndex = __GetFirstValidIndex(ItemID);
+		StartIndex = __GetFirstValidIndex(CorrectedID);
 
 	while (AmountLeft > 0)
 	{
@@ -243,15 +311,14 @@ FAddItemOperationResult UItemInventoryComponent::__AddItem(const FBaseID& ItemID
 		}
 		else
 		{
-			Item = UItemManager::GetInstance()->__SpawnItem(ItemID);
-
-			if (!IsValid(Item))
-				break;
+			Item = UItemManager::GetInstance()->__SpawnItem(CorrectedID, GetWorld());
 
 			__SetItem(Item, StartIndex);
 			Result = Item->__SetCurrentAmount(AmountLeft);
 			AmountLeft = Result.AmountLeft;
 		}
+
+		StartIndex = __GetFirstValidIndex(CorrectedID);
 	}
 
 	return Result;
@@ -268,7 +335,7 @@ int32 UItemInventoryComponent::__GetFirstValidIndex(const FBaseID& ItemID)
 
 		if (IsValid(Item))
 		{
-			if (!Item->IsFull() /*&& Item->GetItemID() == ItemID*/)
+			if (!Item->IsFull() && Item->GetItemID() == ItemID)
 				return i;
 		}
 		else

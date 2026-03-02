@@ -10,6 +10,7 @@ public class RealtimeMeshComponent : ModuleRules
         bEnforceIWYU = true;
         bLegacyPublicIncludePaths = false;
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        bUseUnity = false;
 
         // This is to access RayTracing Definitions
         PrivateIncludePaths.Add(Path.Combine(EngineDirectory, "Shaders", "Shared"));
@@ -17,7 +18,7 @@ public class RealtimeMeshComponent : ModuleRules
         PublicDependencyModuleNames.AddRange(
             new string[]
             {
-                "Core", "CoreUObject",
+                "Core", "CoreUObject", "GeometryCore",
             }
             );
 

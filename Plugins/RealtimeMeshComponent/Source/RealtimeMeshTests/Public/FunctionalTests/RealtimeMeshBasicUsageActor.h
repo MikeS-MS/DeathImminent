@@ -16,4 +16,7 @@ public:
 	ARealtimeMeshBasicUsageActor();
 
 	virtual void OnGenerateMesh_Implementation() override;
+
+	
+	FRealtimeMeshSectionConfig OnAddSectionToPolyGroup(int32 PolyGroupIndex);
 };

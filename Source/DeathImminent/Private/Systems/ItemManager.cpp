@@ -1,4 +1,12 @@
+// Copyright MikeSMediaStudios™
+
 #include "Systems/ItemManager.h"
+#include "Settings/DefaultDataTables.h"
+
+UItemManager::UItemManager()
+{
+
+}
 
 void UItemManager::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -6,58 +14,34 @@ void UItemManager::Initialize(FSubsystemCollectionBase& Collection)
 
 	if (!IsValid(sm__Instance))
 		sm__Instance = this;
+
 }
 
-bool UItemManager::__DoesItemExist_Internal(const FBaseID& ItemID, FItemData** OutItemData)
+void UItemManager::Deinitialize()
 {
-	if (!m__ItemRegistry.Contains(ItemID.Source))
-		return false;
-
-	if (!m__ItemRegistry[ItemID.Source].Contains(ItemID.ID))
-		return false;
-
-	*OutItemData = &m__ItemRegistry[ItemID.Source][ItemID.ID];
-
-	if ((*OutItemData)->Deprecated)
-		return false;
-
-	return true;
+	Super::Deinitialize();
+	sm__Instance = nullptr;
 }
 
-bool UItemManager::__ResolveItemData(const FBaseID& ItemID, FItemData** ItemData)
+void UItemManager::_SetupData(const UDefaultDataTables* DefaultDataTables)
 {
-	if (__DoesItemExist_Internal(ItemID, ItemData))
-	{
-		if ((*ItemData)->Redirect)
-			return __ResolveItemData((*ItemData)->RedirectToItem, ItemData);
-
-		return true;
-	}
-
-	if (!ItemData)
-		return false;
-
-	if (!(*ItemData))
-		return false;
-
-	if ((*ItemData)->Redirect)
-		return __ResolveItemData((*ItemData)->RedirectToItem, ItemData);
-
-	return false;
+	//__LoadData(m__RarityRegistry, DefaultDataTables->Rarities.LoadSynchronous(), GAME_ID);
+	__LoadData(m__ItemRegistry, DefaultDataTables->Items.LoadSynchronous(), GAME_ID);
 }
 
-ABaseItem* UItemManager::__SpawnItem(const FBaseID& ItemID)
+ABaseItem* UItemManager::__SpawnItem(const FBaseID& ItemID, UWorld* InWorld)
 {
-	FItemData* ItemData = nullptr;
+	UWorld* World = IsValid(InWorld) ? InWorld : GetWorld();
 
-	if (!__ResolveItemData(ItemID, &ItemData))
-		return nullptr;
-
-	UWorld* World = GetWorld();
 	if (!IsValid(World))
 		return nullptr;
 
-	ABaseItem* Item = World->SpawnActor<ABaseItem>(ItemData->Item->GetClass());
+	FItemData* ItemData = nullptr;
+
+	if (!__ResolveData(m__ItemRegistry, ItemID, &ItemData))
+		return nullptr;
+
+	ABaseItem* Item = World->SpawnActor<ABaseItem>(ItemData->Item);
 	Item->m__ItemID = ItemID;
 
 	return Item;

@@ -1,9 +1,11 @@
+// Copyright MikeSMediaStudios™
+
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GeneralStructs.generated.h"
 
-#define GAME_ID_NAME "deathimminent"
+#define GAME_ID "deathimminent"
 
 USTRUCT(BlueprintType)
 struct DEATHIMMINENT_API FBaseID
@@ -11,12 +13,12 @@ struct DEATHIMMINENT_API FBaseID
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FString Source = GAME_ID_NAME;
+	FString Source = GAME_ID;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 ID = 0;
 
-	FBaseID() : FBaseID(GAME_ID_NAME, 0)
+	FBaseID()
 	{
 		
 	}
@@ -30,6 +32,11 @@ struct DEATHIMMINENT_API FBaseID
 	{
 		Source = InSource;
 		ID = InID;
+	}
+
+	FString ToString() const
+	{
+		return "(Source: " + Source + " ID: " + FString::FromInt(ID) + ")";
 	}
 
 	static bool Equals(const FBaseID& A, const FBaseID& B)
@@ -50,6 +57,11 @@ struct DEATHIMMINENT_API FBaseID
 	bool operator==(const FBaseID& Other) const
 	{
 		return Source == Other.Source && ID == Other.ID;
+	}
+
+	bool IsDefault() const
+	{
+		return *this == Default;
 	}
 
 	static const FBaseID Default;

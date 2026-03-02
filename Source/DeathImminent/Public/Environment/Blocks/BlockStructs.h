@@ -12,6 +12,13 @@ struct FBlockLocations
 {
 	GENERATED_BODY()
 
+	UPROPERTY(BlueprintReadWrite)
+	float CachedBlockSize;
+
+	UPROPERTY(BlueprintReadWrite)
+	FVector BottomBackLeft;
+
+
 	FBlockLocations()
 	{
 		CachedBlockSize = 0.0f;
@@ -64,11 +71,30 @@ struct FBlockLocations
 		return FVector(BottomBackLeft.X, BottomBackLeft.Y + CachedBlockSize, BottomBackLeft.Z + CachedBlockSize);
 	}
 
-	UPROPERTY(BlueprintReadWrite)
-	float CachedBlockSize;
-
-	UPROPERTY(BlueprintReadWrite)
-	FVector BottomBackLeft;
+	FVector operator[](const int32 Index) const
+	{
+		switch (Index)
+		{
+		default:
+			return BottomBackLeft;
+		case 0:
+			return BottomBackLeft;
+		case 1:
+			return BottomBackRight();
+		case 2:
+			return BottomFrontRight();
+		case 3:
+			return BottomFrontLeft();
+		case 4:
+			return TopBackLeft();
+		case 5:
+			return TopBackRight();
+		case 6:
+			return TopFrontRight();
+		case 7:
+			return TopFrontLeft();
+		}
+	}
 };
 
 UCLASS()
@@ -133,55 +159,67 @@ struct FBlock
 	GENERATED_BODY()
 
 	UPROPERTY(BlueprintReadOnly)
-	double Fullness;
+	int32 Fullness = 0;
 
-	UPROPERTY(BlueprintReadWrite)
-	FBaseID BlockID;
+	UPROPERTY(BlueprintReadOnly)
+	int32 LocalBlockID = -1;
 
 
-	FBlock() : Fullness(0.0)
+	FBlock() 
 	{
 
 	}
 
-	FBlock(const FBaseID& ID, const double InFullness)
+	FBlock(const int32 ID, const int32 InFullness)
 	{
-		BlockID = ID;
-		Fullness = InFullness;
+		LocalBlockID = ID;
+		Fullness = FMath::Clamp(InFullness, 0, 100);
 	}
 
-	double SetFullness(const double NewFullness, double& Overflow)
+	/**
+	 * @return The new fullness.
+	 */
+	int32 SetFullness(const int32 NewFullness, int32& Overflow)
 	{
-		if (NewFullness > 1.0)
-			Overflow = NewFullness - 1.0;
-		Fullness = FMath::Clamp(NewFullness, 0.0, 1.0);
+		if (NewFullness > 100)
+			Overflow = NewFullness - 100;
+		Fullness = FMath::Clamp(NewFullness, 0, 100);
+
+		if (Fullness <= 0)
+			LocalBlockID = -1;
+
 		return Fullness;
+	}
+
+	float ToPercentage() const
+	{
+		if (Fullness <= 0)
+			return 0.0f;
+		return static_cast<float>(Fullness) * 0.01f;
 	}
 
 	bool IsFull() const
 	{
-		return Fullness >= 1.0;
+		return Fullness >= 100;
+	}
+
+	bool IsAir() const
+	{
+		return LocalBlockID == -1;
 	}
 
 	static const FBlock Air;
-	static const FBlock Invalid;
-
-	static const FBaseID AirID;
-	static const FBaseID InvalidID;
 };
 
-inline const FBaseID FBlock::AirID = FBaseID(0);
-inline const FBaseID FBlock::InvalidID = FBaseID(-1);
-inline const FBlock FBlock::Air = FBlock(AirID, 0.0);
-inline const FBlock FBlock::Invalid = FBlock(InvalidID, 0.0);
-
-#if WITH_DEV_AUTOMATION_TESTS
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
-
-inline bool FBlockSizeTest::RunTest(const FString& Parameters)
-{
-	UE_LOG(LogTemp, Error, TEXT("%lluB"), sizeof(FBlock));
-	return true;
-}
-
-#endif
+inline const FBlock FBlock::Air = FBlock(-1, 0);
+//
+//#if WITH_DEV_AUTOMATION_TESTS
+//IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)
+//
+//inline bool FBlockSizeTest::RunTest(const FString& Parameters)
+//{
+//	UE_LOG(LogTemp, Error, TEXT("%lluB"), sizeof(FBlock));
+//	return true;
+//}
+//
+//#endif

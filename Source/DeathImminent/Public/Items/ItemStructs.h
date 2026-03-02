@@ -1,3 +1,5 @@
+// Copyright MikeSMediaStudios™
+
 #pragma once
 
 #include "CoreMinimal.h"
@@ -38,13 +40,13 @@ struct FItemSnapshot
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	int32 Index = -1;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	FBaseID ItemID;
 
-	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly)
+	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	int32 Amount = 0;
 
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
