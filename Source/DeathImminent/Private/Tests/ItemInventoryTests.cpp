@@ -1,5 +1,5 @@
 #include "ItemInventoryTests.h"
-#include "TestGameInstance.h"
+#include "DITestGameInstance.h"
 #include "Tests/AutomationEditorCommon.h"
 #include "Systems/ItemManager.h"
 #include "Items/ItemInventoryComponent.h"
@@ -12,7 +12,7 @@ bool FInventoryAddDropMoveItemTest::RunTest(const FString& Parameters)
 	
 	UWorld* World = GEditor->GetEditorWorldContext().World();
 
-	UTestGameInstance* GameInstance = NewObject<UTestGameInstance>();
+	UDITestGameInstance* GameInstance = NewObject<UDITestGameInstance>();
 
 	UItemManager* ItemManager = NewObject<UItemManager>(GameInstance);
 	ItemManager->_Setup();
