@@ -1,4 +1,4 @@
-// Copyright MikeSMediaStudios™ 2023
+// Copyright MikeSMediaStudiosï¿½ 2023
 
 #pragma once
 
@@ -186,7 +186,7 @@ struct FBlock
 		Fullness = FMath::Clamp(NewFullness, 0, 100);
 
 		if (Fullness <= 0)
-			LocalBlockID = -1;
+			LocalBlockID = Air.LocalBlockID;
 
 		return Fullness;
 	}
@@ -205,13 +205,13 @@ struct FBlock
 
 	bool IsAir() const
 	{
-		return LocalBlockID == -1;
+		return LocalBlockID == Air.LocalBlockID;
 	}
 
 	static const FBlock Air;
 };
 
-inline const FBlock FBlock::Air = FBlock(-1, 0);
+inline const FBlock FBlock::Air = FBlock(0, 0);
 //
 //#if WITH_DEV_AUTOMATION_TESTS
 //IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)

@@ -22,7 +22,7 @@ bool FInventoryAddDropMoveItemTest::RunTest(const FString& Parameters)
 	AActor* InventoryActor2 = World->SpawnActor(AActor::StaticClass());
 	UItemInventoryComponent* ItemInventory = Cast<UItemInventoryComponent>(InventoryActor->AddComponentByClass(UItemInventoryComponent::StaticClass(), false, FTransform::Identity, false));
 	UItemInventoryComponent* ItemInventory2 = Cast<UItemInventoryComponent>(InventoryActor2->AddComponentByClass(UItemInventoryComponent::StaticClass(), false, FTransform::Identity, false));
-	const FBaseID ItemID(1);
+	const FBaseID ItemID;
 	ItemInventory->mb_IsPlayerInventory = true;
 	ItemInventory->__SetTargetInventory(ItemInventory2);
 

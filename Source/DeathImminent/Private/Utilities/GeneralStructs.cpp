@@ -1,4 +1,3 @@
 #include "Utilities/GeneralStructs.h"
 
-
-const FBaseID FBaseID::Default = FBaseID(0);
+FBaseID FBaseID::InvalidId = FBaseID();

@@ -25,10 +25,10 @@ public:
 	void BreakFromGridTest(const FVector& Location);
 
 	UFUNCTION(BlueprintCallable)
-	void AddToGridTest(const FVector& Location, const int32 Amount);
+	void AddToGridTest(const FVector& Location, const FBaseID& BlockId, const int32 Amount);
 
 	UFUNCTION(BlueprintCallable)
-	void AddToGridMultipleTest(const FVector& Location, const FMultipleBlockEditing& MultipleBlocks);
+	void AddToGridMultipleTest(const FVector& Location, const FMultipleBlockEditing& MultipleBlocks, const FBaseID& BlockId);
 
 protected:
 

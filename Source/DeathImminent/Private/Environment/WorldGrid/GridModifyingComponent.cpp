@@ -22,17 +22,17 @@ void UGridModifyingComponent::BreakFromGridTest(const FVector& Location)
 	const FSetBlockOperationResult SetBlockOperationResult = WorldGrid->__HitBlockAtWorldLocation(Location, 1);
 }
 
-void UGridModifyingComponent::AddToGridTest(const FVector& Location, const int32 Amount)
+void UGridModifyingComponent::AddToGridTest(const FVector& Location, const FBaseID& BlockId, const int32 Amount)
 {
-	_AddBlockToGrid(Location, FBaseID(1), Amount);
+	_AddBlockToGrid(Location, BlockId , Amount);
 }
 
 void UGridModifyingComponent::AddToGridMultipleTest(const FVector& Location,
-	const FMultipleBlockEditing& MultipleBlocks)
+	const FMultipleBlockEditing& MultipleBlocks, const FBaseID& BlockId)
 {
 	CHECK_INSTANCE(AWorldGrid, BuildingGrid)
 
-	const int32 AmountLeft = BuildingGrid->__SetBlockMultipleAtWorldLocation(Location, MultipleBlocks, FBaseID(1));
+	const int32 AmountLeft = BuildingGrid->__SetBlockMultipleAtWorldLocation(Location, MultipleBlocks, BlockId);
 
 }
 

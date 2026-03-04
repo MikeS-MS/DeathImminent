@@ -1,8 +1,9 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosï¿½
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Mods/ModContent.h"
 #include "GeneralStructs.generated.h"
 
 #define GAME_ID "deathimminent"
@@ -13,30 +14,19 @@ struct DEATHIMMINENT_API FBaseID
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FString Source = GAME_ID;
+	TSubclassOf<UModContent> Source;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	int32 ID = 0;
+	int32 ID = -1;
 
 	FBaseID()
 	{
 		
 	}
 
-	FBaseID(const int32 InID)
-	{
-		ID = InID;
-	}
-
-	FBaseID(const FString& InSource, const int32 InID)
-	{
-		Source = InSource;
-		ID = InID;
-	}
-
 	FString ToString() const
 	{
-		return "(Source: " + Source + " ID: " + FString::FromInt(ID) + ")";
+		return "(Source: " + Source->GetDefaultObject()->GetName() + ", ID: " + FString::FromInt(ID) + ")";
 	}
 
 	static bool Equals(const FBaseID& A, const FBaseID& B)
@@ -51,20 +41,20 @@ struct DEATHIMMINENT_API FBaseID
 
 	bool operator!=(const FBaseID& Other) const
 	{
-		return Source != Other.Source || ID != Other.ID;
+		return Source.GetDefaultObject()->GetInstance()->GetGuid() != Other.Source.GetDefaultObject()->GetInstance()->GetGuid() || ID != Other.ID;
 	}
 
 	bool operator==(const FBaseID& Other) const
 	{
-		return Source == Other.Source && ID == Other.ID;
+		return Source.GetDefaultObject()->GetInstance()->GetGuid() == Other.Source.GetDefaultObject()->GetInstance()->GetGuid() && ID == Other.ID;
 	}
 
 	bool IsDefault() const
 	{
-		return *this == Default;
+		return this->ID < 0;
 	}
-
-	static const FBaseID Default;
+	
+	static FBaseID InvalidId;
 };
 
 inline bool IsValid(const FBaseID& IDStruct)

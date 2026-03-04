@@ -26,7 +26,7 @@ void UItemManager::Deinitialize()
 void UItemManager::_SetupData(const UDefaultDataTables* DefaultDataTables)
 {
 	//__LoadData(m__RarityRegistry, DefaultDataTables->Rarities.LoadSynchronous(), GAME_ID);
-	__LoadData(m__ItemRegistry, DefaultDataTables->Items.LoadSynchronous(), GAME_ID);
+	// __LoadData(m__ItemRegistry, DefaultDataTables->Items.LoadSynchronous(), GAME_ID);
 }
 
 ABaseItem* UItemManager::__SpawnItem(const FBaseID& ItemID, UWorld* InWorld)

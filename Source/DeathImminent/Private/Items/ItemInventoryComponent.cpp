@@ -1,4 +1,4 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosï¿½
 
 #include "Items/ItemInventoryComponent.h"
 #include "Net/UnrealNetwork.h"
@@ -25,7 +25,7 @@ void UItemInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UItemInventoryComponent::DropItemOnTopOfItem_Implementation(const FItemSnapshot DroppedItem, const FItemSnapshot DroppedOnItem)
 {
-	if (DroppedItem.ItemID == FBaseID::Default && DroppedOnItem.ItemID == FBaseID::Default)
+	if (!IsValid(DroppedItem.ItemID) && !IsValid(DroppedItem.ItemID))
 		return;
 
 	UItemInventoryComponent* DroppedItemInventory = DroppedItem.OwningInventory;
@@ -94,7 +94,7 @@ void UItemInventoryComponent::MoveItemToInventory_Implementation(const FItemSnap
 	UItemInventoryComponent* InventoryToMoveInto)
 {
 	const FBaseID ItemID = ItemToBeMoved.ItemID;
-	if (ItemID == FBaseID::Default)
+	if (!IsValid(ItemID))
 		return;
 
 	UItemInventoryComponent* ItemToBeMovedInventory = ItemToBeMoved.OwningInventory;
@@ -186,12 +186,12 @@ void UItemInventoryComponent::UseItemAtIndex_Implementation(ASurvivalPlayer* Use
 FItemSnapshot UItemInventoryComponent::CreateSnapshotForItemAt(const int32 Index)
 {
 	if (!m__Items.IsValidIndex(Index))
-		return FItemSnapshot(this, FBaseID(-1), 0, Index);
+		return FItemSnapshot(this, FBaseID(), 0, Index);
 
 	const ABaseItem* Item = m__Items[Index];
 
 	if (!IsValid(Item))
-		return FItemSnapshot(this, FBaseID(0), 0, Index);
+		return FItemSnapshot(this, FBaseID(), 0, Index);
 
 	return FItemSnapshot(this, Item->m__ItemID, Item->m__CurrentAmount, Index);
 }
@@ -206,7 +206,7 @@ bool UItemInventoryComponent::IsItemAtIndexEqual(const FItemSnapshot& ItemSnapsh
 
 	const ABaseItem* Item = m__Items[ItemSnapshot.Index];
 	const bool IsItemValid = IsValid(Item);
-	const bool IsItemIDEqual = (IsItemValid ? Item->GetItemID() : FBaseID::Default) == ItemSnapshot.ItemID;
+	const bool IsItemIDEqual = (IsItemValid ? Item->GetItemID() : FBaseID::InvalidId) == ItemSnapshot.ItemID;
 	const bool IsItemAmountEqual = (IsItemValid ? Item->GetCurrentAmount() : 0) == ItemSnapshot.Amount;
 
 	return IsItemIDEqual && IsItemAmountEqual;
@@ -218,7 +218,7 @@ bool UItemInventoryComponent::IsItemAtIndexEqualToID(const FBaseID& ItemID, cons
 		return false;
 
 	const ABaseItem* Item = m__Items[Index];
-	return (IsValid(Item) ? Item->GetItemID() : FBaseID::Default) == ItemID;
+	return (IsValid(Item) ? Item->GetItemID() : FBaseID::InvalidId) == ItemID;
 }
 
 void UItemInventoryComponent::__Setup()

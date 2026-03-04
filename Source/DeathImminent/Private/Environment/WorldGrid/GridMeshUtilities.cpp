@@ -1,6 +1,6 @@
 // Copyright MikeSMediaStudios™ 2023
 
-#pragma optimize("", off)
+// #pragma optimize("", off)
 
 #include "Environment/WorldGrid/GridMeshUtilities.h"
 #include "KismetProceduralMeshLibrary.h"

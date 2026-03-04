@@ -27,7 +27,7 @@ struct FBaseDataInformation
 
 
 template<typename T>
-using DataMap = TMap<FString, TMap<int32, T>>;
+using DataMap = TMap<FGuid, TMap<int32, T>>;
 
 
 UCLASS(BlueprintType)
@@ -38,10 +38,10 @@ class DEATHIMMINENT_API UBaseManager : public UGameInstanceSubsystem
 protected:
 
 	template<typename T>
-	static bool __LoadData(DataMap<T>& DataMap, const UDataTable* const DataTable, const FString& Source)
+	static bool __LoadData(DataMap<T>& DataMap, const UDataTable* const DataTable, const FGuid& Source)
 	{
 		if (!DataTable)
-		return false;
+			return false;
 
 		TArray<FName> Rows = DataTable->GetRowNames();
 
@@ -98,13 +98,14 @@ protected:
 	template<typename T>
 	static bool __DoesDataExist_Internal(DataMap<T>& DataMap, const FBaseID& ID, T** OutData)
 	{
-		if (!DataMap.Contains(ID.Source))
+		const FGuid& guid = ID.Source->GetDefaultObject<UModContent>()->GetInstance()->GetGuid();
+		if (!DataMap.Contains(guid))
 			return false;
 
-		if (!DataMap[ID.Source].Contains(ID.ID))
+		if (!DataMap[guid].Contains(ID.ID))
 			return false;
 
-		*OutData = &DataMap[ID.Source][ID.ID];
+		*OutData = &DataMap[guid][ID.ID];
 
 		if ((*OutData)->BaseDataInformation.Deprecated)
 			return false;
