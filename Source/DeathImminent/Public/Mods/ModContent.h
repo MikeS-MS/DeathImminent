@@ -16,6 +16,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FName m_Name;
 	
+	UPROPERTY(Category = "Data", Config, EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	TArray<TSoftObjectPtr<UDataTable>> m_Items;
+
+	UPROPERTY(Category = "Data", Config, EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	TArray<TSoftObjectPtr<UDataTable>> m_Blocks;
+
+	UPROPERTY(Category = "Data", Config, EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
+	TArray<TSoftObjectPtr<UDataTable>> m_Structures;
+	
 private:
 
 	UPROPERTY(VisibleAnywhere)
@@ -27,7 +36,28 @@ public:
 	const FName& GetModName() const;
 	
 	UFUNCTION(BlueprintCallable)
-	const FGuid& GetGuid() const;
+	const FGuid& GetGuid() const
+	{
+		return m__Guid;
+	}	
+	
+	UFUNCTION(BlueprintCallable)
+	const TArray<TSoftObjectPtr<UDataTable>>& GetBlocksDataTable() const
+	{
+		return m_Blocks;
+	}	
+	
+	UFUNCTION(BlueprintCallable)
+	const TArray<TSoftObjectPtr<UDataTable>>& GetItemsDataTable() const
+	{
+		return m_Items;
+	}	
+	
+	UFUNCTION(BlueprintCallable)
+	const TArray<TSoftObjectPtr<UDataTable>>& GetStructuresDataTable() const
+	{
+		return m_Structures;
+	}
 	
 	UFUNCTION(BlueprintCallable)
 	const UModContent* GetInstance() const;

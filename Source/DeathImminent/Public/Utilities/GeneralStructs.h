@@ -19,45 +19,19 @@ struct DEATHIMMINENT_API FBaseID
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	int32 ID = -1;
 
-	FBaseID()
-	{
-		
-	}
+	FBaseID() { }
 
-	FString ToString() const
-	{
-		return "(Source: " + Source->GetDefaultObject()->GetName() + ", ID: " + FString::FromInt(ID) + ")";
-	}
-
-	static bool Equals(const FBaseID& A, const FBaseID& B)
-	{
-		return A == B;
-	}
-
-	bool Equals(const FBaseID& Other) const
-	{
-		return *this == Other;
-	}
+	FString ToString() const;
+	bool Equals(const FBaseID& Other) const;
+	bool NotEquals(const FBaseID& Other) const;
 
 	bool operator!=(const FBaseID& Other) const
 	{
-		return Source.GetDefaultObject()->GetInstance()->GetGuid() != Other.Source.GetDefaultObject()->GetInstance()->GetGuid() || ID != Other.ID;
+		return NotEquals(Other);
 	}
 
 	bool operator==(const FBaseID& Other) const
 	{
-		return Source.GetDefaultObject()->GetInstance()->GetGuid() == Other.Source.GetDefaultObject()->GetInstance()->GetGuid() && ID == Other.ID;
+		return Equals(Other);
 	}
-
-	bool IsDefault() const
-	{
-		return this->ID < 0;
-	}
-	
-	static FBaseID InvalidId;
 };
-
-inline bool IsValid(const FBaseID& IDStruct)
-{
-	return IDStruct.ID > -1;
-}

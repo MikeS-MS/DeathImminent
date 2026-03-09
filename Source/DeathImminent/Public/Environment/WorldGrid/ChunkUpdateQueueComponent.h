@@ -82,7 +82,7 @@ private:
 	bool __IsChunkBeingWorkedOn(AChunk* Chunk) const;
 
 private:
-
+	
 	TCheckedQueue<AChunk*> m__QueuedChunks;
 	TArray<FUpdateChunkThread*> m__PermanentThreads;
 	static UChunkUpdateQueueComponent* sm__Instance;

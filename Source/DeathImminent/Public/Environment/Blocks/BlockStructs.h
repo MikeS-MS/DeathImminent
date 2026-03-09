@@ -153,65 +153,94 @@ public:
 	}
 };
 
+class AChunk;
+
 USTRUCT(BlueprintType)
 struct FBlock
 {
 	GENERATED_BODY()
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 Fullness = 0;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 LocalBlockID = -1;
-
 
 	FBlock() 
 	{
 
 	}
 
-	FBlock(const int32 ID, const int32 InFullness)
+	FBlock(const int32 ID, const int32 InFullness, const int32& AirBlockID)
 	{
 		LocalBlockID = ID;
 		Fullness = FMath::Clamp(InFullness, 0, 100);
+		SetIsAir(AirBlockID);
 	}
-
+	
+	void SetBlockID(const int32& BlockID, const int32& AirBlockID, bool CheckFullness)
+	{
+		LocalBlockID = BlockID;
+		SetIsAir(AirBlockID, CheckFullness);
+	}
+	
 	/**
 	 * @return The new fullness.
 	 */
-	int32 SetFullness(const int32 NewFullness, int32& Overflow)
+	int32 SetFullness(const int32 NewFullness, int32& Overflow, const int32& AirBlockID)
 	{
 		if (NewFullness > 100)
 			Overflow = NewFullness - 100;
 		Fullness = FMath::Clamp(NewFullness, 0, 100);
 
-		if (Fullness <= 0)
-			LocalBlockID = Air.LocalBlockID;
+		SetIsAir(AirBlockID);
 
 		return Fullness;
 	}
-
-	float ToPercentage() const
+	
+	FBaseID ToRealID(const AChunk* Chunk) const;
+	
+	float FullnessPercentage() const
 	{
 		if (Fullness <= 0)
 			return 0.0f;
 		return static_cast<float>(Fullness) * 0.01f;
+	}	
+	
+	float Density() const
+	{
+		return FullnessPercentage();
 	}
 
 	bool IsFull() const
 	{
 		return Fullness >= 100;
 	}
-
+	
 	bool IsAir() const
 	{
-		return LocalBlockID == Air.LocalBlockID;
+		return IsAirCached;
 	}
-
-	static const FBlock Air;
+	
+private:
+	
+	void SetIsAir(const int32& AirBlockID, bool CheckFullness = true)
+	{
+		if ((CheckFullness && Fullness <= 0) || LocalBlockID == AirBlockID)
+		{
+			IsAirCached = true;
+			LocalBlockID = AirBlockID;
+		}
+		else
+			IsAirCached = false;
+	}
+	
+private:
+	
+	bool IsAirCached = false;
+	
 };
 
-inline const FBlock FBlock::Air = FBlock(0, 0);
 //
 //#if WITH_DEV_AUTOMATION_TESTS
 //IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBlockSizeTest, "Block Struct Size Test", EAutomationTestFlags::ApplicationContextMask | EAutomationTestFlags::SmokeFilter)

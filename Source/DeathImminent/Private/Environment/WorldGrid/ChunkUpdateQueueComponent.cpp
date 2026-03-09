@@ -70,6 +70,7 @@ void FUpdateChunkThread::Start(AChunk* NewChunk)
 
 void FUpdateChunkThread::NotifyCompleted(AChunk* Chunk, const bool StoppedEarly)
 {
+	// UE_LOG(LogTemp, Error, TEXT("Finished Updating Chunk %s"), *Chunk->GetName())
 	if (!StoppedEarly)
 		if (IsValid(Chunk))
 			Chunk->__OnFinishedCalculatingFromThread();

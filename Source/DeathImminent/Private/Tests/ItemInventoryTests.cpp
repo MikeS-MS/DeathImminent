@@ -15,7 +15,7 @@ bool FInventoryAddDropMoveItemTest::RunTest(const FString& Parameters)
 	UDITestGameInstance* GameInstance = NewObject<UDITestGameInstance>();
 
 	UItemManager* ItemManager = NewObject<UItemManager>(GameInstance);
-	ItemManager->_Setup();
+	// ItemManager->_Setup();
 	ItemManager->sm__Instance = ItemManager;
 
 	AActor* InventoryActor = World->SpawnActor(AActor::StaticClass());

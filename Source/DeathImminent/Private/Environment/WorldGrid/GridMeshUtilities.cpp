@@ -87,10 +87,15 @@ void UGridMeshUtilities::MarchingCubes(AChunk* Chunk, FVoxelMeshSectionData& Mes
 					const FBlock* A0Block = Blocks[A0];
 					const FBlock* A1Block = Blocks[A1];
 					const FBlock* A2Block = Blocks[A2];
-
-					FirstVertex = __MC_InterpolatePosition(!A2Block->IsAir(), A2Block->ToPercentage(), Blocks[B2]->ToPercentage(), BlockLocations[A2], BlockLocations[B2]);
-					SecondVertex = __MC_InterpolatePosition(!A1Block->IsAir(), A1Block->ToPercentage(), Blocks[B1]->ToPercentage(), BlockLocations[A1], BlockLocations[B1]);
-					ThirdVertex = __MC_InterpolatePosition(!A0Block->IsAir(), A0Block->ToPercentage(), Blocks[B0]->ToPercentage(), BlockLocations[A0], BlockLocations[B0]);
+					
+					// FirstVertex = __MC_InterpolatePosition(!A2Block->IsAir(), A2Block->Density(), Blocks[B2]->Density(), BlockLocations[A2], BlockLocations[B2]);
+					// SecondVertex = __MC_InterpolatePosition(!A1Block->IsAir(), A1Block->Density(), Blocks[B1]->Density(), BlockLocations[A1], BlockLocations[B1]);
+					// ThirdVertex = __MC_InterpolatePosition(!A0Block->IsAir(), A0Block->Density(), Blocks[B0]->Density(), BlockLocations[A0], BlockLocations[B0]);
+					
+					float Threshold = 0.0f;
+					FirstVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A2]->Density(), Blocks[B2]->Density(), BlockLocations[A2], BlockLocations[B2]);
+					SecondVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A1]->Density(), Blocks[B1]->Density(), BlockLocations[A1], BlockLocations[B1]);
+					ThirdVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A0]->Density(), Blocks[B0]->Density(), BlockLocations[A0], BlockLocations[B0]);
 
 					/* Creates indexes for triangles array */
 					FirstVertexIndex = PositionsSize - 3;

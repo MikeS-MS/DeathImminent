@@ -1,4 +1,4 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosï¿½
 
 #pragma once
 
@@ -15,9 +15,6 @@ struct FItemData : public FTableRowBase
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	FBaseDataInformation BaseDataInformation;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
-	FItemInformation ItemInfo;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	TSubclassOf<ABaseItem> Item;
@@ -60,17 +57,15 @@ public:
 		return sm__Instance;
 	}
 
-protected:
-
-	virtual void _SetupData(const UDefaultDataTables* DefaultDataTables) override;
-
 private:
-
+	
+	void __Setup();
+	
 	ABaseItem* __SpawnItem(const FBaseID& ItemID, UWorld* InWorld);
 
 private:
-
+	
 	static UItemManager* sm__Instance;
-
+	
 	DataMap<FItemData> m__ItemRegistry;
 };

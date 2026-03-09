@@ -5,10 +5,16 @@
 #include "Systems/ItemManager.h"
 #include "NPC/SurvivalPlayer.h"
 #include "Utilities/GameUtilities.h"
+#include "Systems/ContentManager.h"
 
 UItemInventoryComponent::UItemInventoryComponent()
 {
 	SetIsReplicatedByDefault(true);
+}
+
+void UItemInventoryComponent::BeginPlay()
+{
+	Super::BeginPlay();
 	__Setup();
 }
 
@@ -25,7 +31,11 @@ void UItemInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 
 void UItemInventoryComponent::DropItemOnTopOfItem_Implementation(const FItemSnapshot DroppedItem, const FItemSnapshot DroppedOnItem)
 {
-	if (!IsValid(DroppedItem.ItemID) && !IsValid(DroppedItem.ItemID))
+	FBaseID CorrectedDroppedItemID = DroppedItem.ItemID;
+	FBaseID CorrectedDroppedOnItemID = DroppedOnItem.ItemID;
+	CHECK_INSTANCE(UItemManager, ItemManager)
+	
+	if (!ItemManager->IsItemValid(DroppedItem.ItemID, CorrectedDroppedItemID) && !ItemManager->IsItemValid(DroppedOnItem.ItemID, CorrectedDroppedOnItemID))
 		return;
 
 	UItemInventoryComponent* DroppedItemInventory = DroppedItem.OwningInventory;
@@ -93,8 +103,11 @@ void UItemInventoryComponent::DropItemOnTopOfItem_Implementation(const FItemSnap
 void UItemInventoryComponent::MoveItemToInventory_Implementation(const FItemSnapshot ItemToBeMoved, const int32 AmountToMove,
 	UItemInventoryComponent* InventoryToMoveInto)
 {
-	const FBaseID ItemID = ItemToBeMoved.ItemID;
-	if (!IsValid(ItemID))
+	const FBaseID& ItemID = ItemToBeMoved.ItemID;
+	FBaseID CorrectedItemID = ItemToBeMoved.ItemID;
+	CHECK_INSTANCE(UItemManager, ItemManager)
+	
+	if (!ItemManager->IsItemValid(ItemID, CorrectedItemID))
 		return;
 
 	UItemInventoryComponent* ItemToBeMovedInventory = ItemToBeMoved.OwningInventory;
@@ -131,7 +144,7 @@ void UItemInventoryComponent::MoveItemToInventory_Implementation(const FItemSnap
 	Result.AmountLeft = AmountToMove == -1 ? CurrentAmount : AmountToMove;
 	const bool EqualsCurrentAmount = Result.AmountLeft == CurrentAmount;
 
-	Result = InventoryToMoveInto->__AddItem(ItemID, Result.AmountLeft);
+	Result = InventoryToMoveInto->__AddItem(CorrectedItemID, Result.AmountLeft);
 
 	if (EqualsCurrentAmount)
 	{
@@ -179,19 +192,18 @@ void UItemInventoryComponent::UseItemAtIndex_Implementation(ASurvivalPlayer* Use
 			return;
 	}
 
-
 	Item->__UseItem(User);
 }
 
 FItemSnapshot UItemInventoryComponent::CreateSnapshotForItemAt(const int32 Index)
 {
 	if (!m__Items.IsValidIndex(Index))
-		return FItemSnapshot(this, FBaseID(), 0, Index);
+		return FItemSnapshot(this, m__BaseContentMod->GetInvalidItemID(), 0, Index);
 
 	const ABaseItem* Item = m__Items[Index];
 
 	if (!IsValid(Item))
-		return FItemSnapshot(this, FBaseID(), 0, Index);
+		return FItemSnapshot(this, m__BaseContentMod->GetInvalidItemID(), 0, Index);
 
 	return FItemSnapshot(this, Item->m__ItemID, Item->m__CurrentAmount, Index);
 }
@@ -206,7 +218,7 @@ bool UItemInventoryComponent::IsItemAtIndexEqual(const FItemSnapshot& ItemSnapsh
 
 	const ABaseItem* Item = m__Items[ItemSnapshot.Index];
 	const bool IsItemValid = IsValid(Item);
-	const bool IsItemIDEqual = (IsItemValid ? Item->GetItemID() : FBaseID::InvalidId) == ItemSnapshot.ItemID;
+	const bool IsItemIDEqual = (IsItemValid ? Item->GetItemID() : m__BaseContentMod->GetInvalidItemID()) == ItemSnapshot.ItemID;
 	const bool IsItemAmountEqual = (IsItemValid ? Item->GetCurrentAmount() : 0) == ItemSnapshot.Amount;
 
 	return IsItemIDEqual && IsItemAmountEqual;
@@ -216,13 +228,15 @@ bool UItemInventoryComponent::IsItemAtIndexEqualToID(const FBaseID& ItemID, cons
 {
 	if (!m__Items.IsValidIndex(Index))
 		return false;
-
+	
 	const ABaseItem* Item = m__Items[Index];
-	return (IsValid(Item) ? Item->GetItemID() : FBaseID::InvalidId) == ItemID;
+	return (IsValid(Item) ? Item->GetItemID() : m__BaseContentMod->GetInvalidItemID()) == ItemID;
 }
 
 void UItemInventoryComponent::__Setup()
 {
+	CHECK_INSTANCE(UContentManager, ContentManager)
+	m__BaseContentMod = ContentManager->GetBaseGameContent();
 	m__Items.SetNum(m_Size);
 }
 
@@ -311,7 +325,7 @@ FAddItemOperationResult UItemInventoryComponent::__AddItem(const FBaseID& ItemID
 		}
 		else
 		{
-			Item = UItemManager::GetInstance()->__SpawnItem(CorrectedID, GetWorld());
+			Item = ItemManager->__SpawnItem(CorrectedID, GetWorld());
 
 			__SetItem(Item, StartIndex);
 			Result = Item->__SetCurrentAmount(AmountLeft);

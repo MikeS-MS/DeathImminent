@@ -1,4 +1,4 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosï¿½
 
 #pragma once
 
@@ -17,10 +17,5 @@ class UBaseGameManager : public UBaseManager
 public:
 
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-
-protected:
-
-	void _Setup();
-	virtual void _SetupData(const UDefaultDataTables* DefaultDataTables) { }
-
+	
 };

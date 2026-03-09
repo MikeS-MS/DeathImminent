@@ -1,7 +1,11 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosï¿½
 
 #include "Systems/ItemManager.h"
+
+#include "Mods/DeathImminentContent.h"
 #include "Settings/DefaultDataTables.h"
+#include "Systems/ContentManager.h"
+#include "Utilities/GameUtilities.h"
 
 UItemManager::UItemManager()
 {
@@ -11,10 +15,9 @@ UItemManager::UItemManager()
 void UItemManager::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-
-	if (!IsValid(sm__Instance))
-		sm__Instance = this;
-
+	sm__Instance = this;
+	Collection.InitializeDependency(UContentManager::StaticClass());
+	__Setup();
 }
 
 void UItemManager::Deinitialize()
@@ -23,10 +26,16 @@ void UItemManager::Deinitialize()
 	sm__Instance = nullptr;
 }
 
-void UItemManager::_SetupData(const UDefaultDataTables* DefaultDataTables)
+void UItemManager::__Setup()
 {
-	//__LoadData(m__RarityRegistry, DefaultDataTables->Rarities.LoadSynchronous(), GAME_ID);
-	// __LoadData(m__ItemRegistry, DefaultDataTables->Items.LoadSynchronous(), GAME_ID);
+	CHECK_INSTANCE(UContentManager, ContentManager)
+	
+	for (auto& ModData : ContentManager->GetLoadedMods())
+	{
+		UModContent* Mod = ModData.Value;
+		for (auto& DataTable : Mod->GetItemsDataTable())
+			__LoadData(m__ItemRegistry, DataTable.LoadSynchronous(), Mod->GetGuid());
+	}
 }
 
 ABaseItem* UItemManager::__SpawnItem(const FBaseID& ItemID, UWorld* InWorld)

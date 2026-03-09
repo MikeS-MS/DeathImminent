@@ -5,8 +5,10 @@
 
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "CoreMinimal.h"
+#include "ContentManager.h"
 #include "Engine/DataTable.h"
 #include "Utilities/GeneralStructs.h"
+#include "Utilities/GameUtilities.h"
 #include "BaseManager.generated.h"
 
 
@@ -15,6 +17,9 @@ struct FBaseDataInformation
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	FBaseID ID;
+	
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
 	bool Deprecated = false;
 
@@ -27,7 +32,7 @@ struct FBaseDataInformation
 
 
 template<typename T>
-using DataMap = TMap<FGuid, TMap<int32, T>>;
+using DataMap = TMap<FGuid, TArray<T>>;
 
 
 UCLASS(BlueprintType)
@@ -49,15 +54,15 @@ protected:
 			return false;
 
 		if (!DataMap.Contains(Source))
-			DataMap.Emplace(Source, TMap<int32, T>());
+			DataMap.Emplace(Source, TArray<T>());
 
 		for (const FName& Row : Rows)
 		{
 			const FString ConvertedRowName = Row.ToString();
 			const int32 ID = FCString::Atoi(*ConvertedRowName);
-			const T* AbilityInfo = DataTable->FindRow<T>(Row, TEXT("Fetching ability with id" + ConvertedRowName));
+			const T* Data = DataTable->FindRow<T>(Row, TEXT("Fetching ability with id" + ConvertedRowName));
 			
-			DataMap[Source].Emplace(ID, *AbilityInfo);
+			DataMap[Source].Add(*Data);
 		}
 
 		return true;
@@ -98,14 +103,16 @@ protected:
 	template<typename T>
 	static bool __DoesDataExist_Internal(DataMap<T>& DataMap, const FBaseID& ID, T** OutData)
 	{
-		const FGuid& guid = ID.Source->GetDefaultObject<UModContent>()->GetInstance()->GetGuid();
+		CHECK_INSTANCE_RETURN(UContentManager, ContentManager, false)
+		const FGuid& guid = ContentManager->GetModInstance(ID.Source)->GetGuid();
 		if (!DataMap.Contains(guid))
 			return false;
-
-		if (!DataMap[guid].Contains(ID.ID))
+		
+		*OutData = DataMap[guid].FindByPredicate([&ID](const T& Data) { return Data.BaseDataInformation.ID == ID; });
+		if (*OutData == nullptr)
 			return false;
 
-		*OutData = &DataMap[guid][ID.ID];
+		// *OutData = &DataMap[guid][index];
 
 		if ((*OutData)->BaseDataInformation.Deprecated)
 			return false;

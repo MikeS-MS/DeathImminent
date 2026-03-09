@@ -1,20 +1,10 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosï¿½
 
 #include "BaseGameManager.h"
+#include "Systems/ContentManager.h"
 
 void UBaseGameManager::Initialize(FSubsystemCollectionBase& Collection)
 {
+	Collection.InitializeDependency(UContentManager::StaticClass());
 	Super::Initialize(Collection);
-
-	_Setup();
-}
-
-void UBaseGameManager::_Setup()
-{
-	const UDefaultDataTables* DefaultDataTables = GetDefault<UDefaultDataTables>();
-
-	if (!IsValid(DefaultDataTables))
-		return;
-
-	_SetupData(DefaultDataTables);
 }

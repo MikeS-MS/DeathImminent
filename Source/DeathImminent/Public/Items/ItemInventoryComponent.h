@@ -1,4 +1,4 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosï¿½
 
 #pragma once
 
@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "BaseItem.h"
 #include "ItemStructs.h"
+#include "Mods/DeathImminentContent.h"
 #include "ItemInventoryComponent.generated.h"
 
 class ASurvivalPlayer;
@@ -22,6 +23,8 @@ class DEATHIMMINENT_API UItemInventoryComponent : public UActorComponent
 public:
 
 	UItemInventoryComponent();
+	
+	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	UFUNCTION(Category = "Operations", BlueprintCallable, Server, Reliable)
@@ -137,6 +140,8 @@ private:
 
 private:
 
+	const UDeathImminentContent* m__BaseContentMod;
+	
 	UPROPERTY(DisplayName = "TargetItemInventory", Category = "Data", VisibleAnywhere, Replicated)
 	UItemInventoryComponent* m__TargetItemInventory;
 

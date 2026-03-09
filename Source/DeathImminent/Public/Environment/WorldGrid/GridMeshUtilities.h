@@ -63,6 +63,55 @@ private:
 		const FVector SecondLocationChecked = bIsFirstValid ? SecondLocation : FirstLocation;
 		const double InterpolationValue = bIsFirstValid ? FirstValue : SecondValue;
 		return (FMath::VInterpTo(FirstLocationChecked, SecondLocationChecked, 1.f, InterpolationValue));
+	}	
+	
+	static FORCEINLINE FVector __MC_InterpolatePositionExperimental(const float ThreshHold,	
+																	const float FirstValue, 
+																	const float SecondValue, 
+																	const FVector& FirstLocation, 
+																	const FVector& SecondLocation)
+	{
+		float t = 0.0f;
+		if (FirstValue > 0.0f && SecondValue > 0.0f)
+			t = (ThreshHold - FirstValue) / (SecondValue - FirstValue);
+		else if (FirstValue > 0.0f)
+		{
+			float FirstLeftOver = 1.0f - FirstValue;
+			t = (ThreshHold - FirstValue) / (FirstLeftOver - FirstValue);
+		}
+		else if (SecondValue > 0.0f)
+		{
+			float SecondLeftOver = 1.0f - SecondValue;
+			t = (ThreshHold - SecondValue) / (SecondLeftOver - SecondValue);
+		}
+		
+		return (FMath::VInterpTo(FirstLocation, SecondLocation, 1.f, t));
+	}	
+	
+	static FORCEINLINE FVector __MC_InterpolatePositionThreshold(const float ThreshHold, 
+																 const float FirstValue, 
+																 const float SecondValue, 
+																 const FVector& FirstLocation, 
+																 const FVector& SecondLocation)
+	{
+		// const bool bIsFirstValid = FirstValid;
+		float t = 0.0f;
+		float firstDifference = FMath::Abs(ThreshHold - FirstValue);
+		float secondDifference = FMath::Abs(ThreshHold - SecondValue);
+		if (firstDifference < 0.00001f && secondDifference < 0.00001f)
+			return FirstLocation;
+		else if (firstDifference < 0.00001f)
+			t = SecondValue;		
+		else if (secondDifference < 0.00001f)
+			t = FirstValue;
+		else if (FMath::Abs(FirstValue - SecondValue) < 0.00001f)
+			t = FirstValue;
+		else
+			t = (ThreshHold - FirstValue) / (SecondValue - FirstValue);
+		// const FVector FirstLocationChecked = bIsFirstValid ? FirstLocation : SecondLocation;
+		// const FVector SecondLocationChecked = bIsFirstValid ? SecondLocation : FirstLocation;
+		// const double InterpolationValue = bIsFirstValid ? FirstValue : SecondValue;
+		return (FMath::VInterpTo(FirstLocation, SecondLocation, 1.f, t));
 	}
 
 private:
