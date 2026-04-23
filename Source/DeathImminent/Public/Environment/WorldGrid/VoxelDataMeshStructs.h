@@ -1,8 +1,9 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosâ„¢
 
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Environment/Blocks/BlockStructs.h"
 #include "ProceduralMeshComponent.h"
 #include "VoxelDataMeshStructs.generated.h"
 
@@ -55,4 +56,39 @@ struct FVoxelMeshSectionData
 		Normals.Empty();
 		Tangents.Empty();
 	}
+};
+
+struct FSurfaceNetsVoxelData
+{
+	FSurfaceNetsVoxelData(const FBlockLocations& BlockLocations, const FBlock& Block, const FIntVector& GridLocation) : Block(&Block)
+	{
+		IsSurface = false;
+		this -> GridLocation = GridLocation;
+		CalculatedLocation = BlockLocations.BottomBackLeft;
+		this->WorldLocation = BlockLocations;
+	}
+	
+	bool IsValid() const
+	{
+		return !Block->IsAir();
+	}
+	
+	bool IsSurface;
+	
+	FIntVector GridLocation;
+	FVector CalculatedLocation;
+	const FBlock* Block;
+	FBlockLocations WorldLocation;
+	
+	const FSurfaceNetsVoxelData* Left = nullptr;
+	const FSurfaceNetsVoxelData* Right = nullptr;
+	const FSurfaceNetsVoxelData* Back = nullptr;
+	const FSurfaceNetsVoxelData* Front = nullptr;
+	const FSurfaceNetsVoxelData* Bottom = nullptr;
+	const FSurfaceNetsVoxelData* Top = nullptr;
+
+	const FSurfaceNetsVoxelData* BottomFrontRight = nullptr;
+	const FSurfaceNetsVoxelData* TopBackRight = nullptr;
+	const FSurfaceNetsVoxelData* TopFrontRight = nullptr;
+	const FSurfaceNetsVoxelData* TopFrontLeft = nullptr;
 };

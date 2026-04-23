@@ -1,4 +1,4 @@
-// Copyright MikeSMediaStudios™ 2023
+// Copyright MikeSMediaStudiosâ„¢ 2023
 
 // #pragma optimize("", off)
 
@@ -88,14 +88,18 @@ void UGridMeshUtilities::MarchingCubes(AChunk* Chunk, FVoxelMeshSectionData& Mes
 					const FBlock* A1Block = Blocks[A1];
 					const FBlock* A2Block = Blocks[A2];
 					
-					// FirstVertex = __MC_InterpolatePosition(!A2Block->IsAir(), A2Block->Density(), Blocks[B2]->Density(), BlockLocations[A2], BlockLocations[B2]);
-					// SecondVertex = __MC_InterpolatePosition(!A1Block->IsAir(), A1Block->Density(), Blocks[B1]->Density(), BlockLocations[A1], BlockLocations[B1]);
-					// ThirdVertex = __MC_InterpolatePosition(!A0Block->IsAir(), A0Block->Density(), Blocks[B0]->Density(), BlockLocations[A0], BlockLocations[B0]);
+					FirstVertex = __MC_InterpolatePosition(!A2Block->IsAir(), A2Block->Density(), Blocks[B2]->Density(), BlockLocations[A2], BlockLocations[B2]);
+					SecondVertex = __MC_InterpolatePosition(!A1Block->IsAir(), A1Block->Density(), Blocks[B1]->Density(), BlockLocations[A1], BlockLocations[B1]);
+					ThirdVertex = __MC_InterpolatePosition(!A0Block->IsAir(), A0Block->Density(), Blocks[B0]->Density(), BlockLocations[A0], BlockLocations[B0]);
 					
-					float Threshold = 0.0f;
-					FirstVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A2]->Density(), Blocks[B2]->Density(), BlockLocations[A2], BlockLocations[B2]);
-					SecondVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A1]->Density(), Blocks[B1]->Density(), BlockLocations[A1], BlockLocations[B1]);
-					ThirdVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A0]->Density(), Blocks[B0]->Density(), BlockLocations[A0], BlockLocations[B0]);
+					// float Threshold = 0.0f;
+					// FirstVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A2]->Density(), Blocks[B2]->Density(), BlockLocations[A2], BlockLocations[B2]);
+					// SecondVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A1]->Density(), Blocks[B1]->Density(), BlockLocations[A1], BlockLocations[B1]);
+					// ThirdVertex = __MC_InterpolatePositionThreshold(Threshold, Blocks[A0]->Density(), Blocks[B0]->Density(), BlockLocations[A0], BlockLocations[B0]);
+					
+					// FirstVertex = __MC_InterpolatePositionExperimental2(Blocks[A2]->Density(), Blocks[B2]->Density(), BlockLocations[A2], BlockLocations[B2]);
+					// SecondVertex = __MC_InterpolatePositionExperimental2(Blocks[A1]->Density(), Blocks[B1]->Density(), BlockLocations[A1], BlockLocations[B1]);
+					// ThirdVertex = __MC_InterpolatePositionExperimental2(Blocks[A0]->Density(), Blocks[B0]->Density(), BlockLocations[A0], BlockLocations[B0]);
 
 					/* Creates indexes for triangles array */
 					FirstVertexIndex = PositionsSize - 3;
@@ -140,6 +144,174 @@ void UGridMeshUtilities::MarchingCubes(AChunk* Chunk, FVoxelMeshSectionData& Mes
 		}
 	}
 }
+
+UE_DISABLE_OPTIMIZATION
+void UGridMeshUtilities::SurfaceNets(AChunk* Chunk, FVoxelMeshSectionData& MeshData, bool& StopEarly)
+{
+	FIntVector ChunkSize = Chunk->GetContainingGrid()->GetGridData().ChunkSizeInBlocks;
+	TMap<FIntVector, FSurfaceNetsVoxelData> BlocksData;
+	for (int x = -1; x < ChunkSize.X ; x++)
+	{
+		for (int y = -1; y < ChunkSize.Y ; y++)
+		{
+			for (int z = -1; z < ChunkSize.Z ; z++)
+			{
+				if (StopEarly)
+					return;
+				
+				FIntVector Location(x, y, z);
+				BlocksData.Add(Location, __SN_CreateBlockData(Chunk, Location, ChunkSize));
+			}
+		}
+	}
+	
+	for (int x = -1; x < ChunkSize.X; x++)
+	{
+		for (int y = -1; y < ChunkSize.Y; y++)
+		{
+			for (int z = -1; z < ChunkSize.Z; z++)
+			{
+				if (StopEarly)
+					return;
+				
+				FIntVector Location(x, y, z);
+				FSurfaceNetsVoxelData BlockData = BlocksData[Location];
+				
+				__SN_FillBlockData(Chunk, Location, ChunkSize, BlockData, BlocksData);
+				
+				if (StopEarly)
+					return;
+				
+				__SN_FindBlockSmoothLocation(BlockData);
+				
+				BlocksData[Location] = BlockData;
+			}
+		}
+	}
+	
+	for (int x = 0; x < ChunkSize.X; x++)
+	{
+		for (int y = 0; y < ChunkSize.Y; y++)
+		{
+			for (int z = 0; z < ChunkSize.Z; z++)
+			{
+				if (StopEarly)
+					return;
+				
+				FIntVector Location(x, y, z);
+				FSurfaceNetsVoxelData BlockData = BlocksData[Location];
+				
+				__SN_AddMeshDataFromBlock(BlockData, MeshData);
+			}
+		}
+	}
+	int bruh = 0;
+}
+
+void UGridMeshUtilities::__SN_AddMeshDataFromBlock(const FSurfaceNetsVoxelData& CurrentBlockData, FVoxelMeshSectionData& MeshData)
+{
+	if (!CurrentBlockData.IsSurface)
+		return;
+
+	/**
+	 *	Pass with this order in mind.
+	 *		0 -- 1
+	 *		|    |
+	 *		2 -- 3
+	 */
+	const auto& AddQuad = [&CurrentBlockData, &MeshData](const FVector& FirstLocation, const FVector& SecondLocation, const FVector& ThirdLocation, const FVector& FourthLocation, const FVector& Normal, const FVector& Tangent)
+	{
+		const int FirstVertex = MeshData.Positions.Add(FirstLocation);
+		const int SecondVertex = MeshData.Positions.Add(SecondLocation);
+		const int ThirdVertex = MeshData.Positions.Add(ThirdLocation);
+		const int FourthVertex = MeshData.Positions.Add(FourthLocation);
+
+		MeshData.Triangles.Add(ThirdVertex);
+		MeshData.Triangles.Add(SecondVertex);
+		MeshData.Triangles.Add(FirstVertex);
+
+		MeshData.Triangles.Add(ThirdVertex);
+		MeshData.Triangles.Add(FourthVertex);
+		MeshData.Triangles.Add(SecondVertex);
+
+		const int& U = CurrentBlockData.GridLocation.X;
+		const int& V = CurrentBlockData.GridLocation.Y;
+
+		MeshData.UVs.Add(FVector2D(U, V));
+		MeshData.UVs.Add(FVector2D(U, V));
+		MeshData.UVs.Add(FVector2D(U, V));
+		MeshData.UVs.Add(FVector2D(U, V));
+
+		MeshData.Normals.Add(Normal);
+		MeshData.Normals.Add(Normal);
+		MeshData.Normals.Add(Normal);
+		MeshData.Normals.Add(Normal);
+
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+		MeshData.Tangents.Add(FProcMeshTangent(Tangent.X, Tangent.Y, Tangent.Z));
+	};
+	const auto& IsPossibleToAddSide = [](const FSurfaceNetsVoxelData* CurrentSide)
+	{
+		return CurrentSide == nullptr || !CurrentSide->IsValid();
+	};
+	const auto& GetLocation = [](const FSurfaceNetsVoxelData* CurrentSide, const FVector& Location)
+	{
+		if (CurrentSide)
+			return CurrentSide->CalculatedLocation;
+		return Location;
+	};
+
+	const FVector& BottomLeftBack = CurrentBlockData.CalculatedLocation;
+	const FVector& BottomRightBack = GetLocation(CurrentBlockData.Right, CurrentBlockData.WorldLocation.BottomBackRight());
+	const FVector& BottomRightFront = GetLocation(CurrentBlockData.BottomFrontRight, CurrentBlockData.WorldLocation.BottomFrontRight());
+	const FVector& BottomLeftFront = GetLocation(CurrentBlockData.Front, CurrentBlockData.WorldLocation.BottomFrontLeft());
+
+	const FVector& TopLeftBack = GetLocation(CurrentBlockData.Top, CurrentBlockData.WorldLocation.TopBackLeft());
+	const FVector& TopRightBack = GetLocation(CurrentBlockData.TopBackRight, CurrentBlockData.WorldLocation.TopBackRight());
+	const FVector& TopRightFront = GetLocation(CurrentBlockData.TopFrontRight, CurrentBlockData.WorldLocation.TopFrontRight());
+	const FVector& TopLeftFront = GetLocation(CurrentBlockData.TopFrontLeft, CurrentBlockData.WorldLocation.TopFrontLeft());
+
+	if(IsPossibleToAddSide(CurrentBlockData.Right))
+	{
+		// Right face can be added
+		AddQuad(TopRightFront, TopRightBack, BottomRightFront, BottomRightBack, FVector(1, 0, 0), FVector(0, -1, 0));
+		//AddQuad(TopRightBack, TopRightFront, BottomRightBack, BottomRightFront, FVector(-1, 0, 0), FVector(0, 1, 0));
+
+	}
+	if(IsPossibleToAddSide(CurrentBlockData.Left))
+	{
+		// Left Face can be added
+		AddQuad(TopLeftBack, TopLeftFront, BottomLeftBack, BottomLeftFront, FVector(-1, 0, 0), FVector(0, 1, 0));
+		//AddQuad(TopLeftFront, TopLeftBack, BottomLeftFront, BottomLeftBack, FVector(1, 0, 0), FVector(0, -1, 0));
+	}
+	if(IsPossibleToAddSide(CurrentBlockData.Back))
+	{
+		// Back Face can be added
+		AddQuad(TopRightBack, TopLeftBack, BottomRightBack, BottomLeftBack, FVector(0, -1, 0), FVector(1, 0, 0));
+		//AddQuad(TopLeftBack, TopRightBack, BottomLeftBack, BottomRightBack, FVector(0, 1, 0), FVector(1, 0, 0));
+	}
+	if(IsPossibleToAddSide(CurrentBlockData.Front))
+	{
+		// Front face can be added
+		AddQuad(TopLeftFront, TopRightFront, BottomLeftFront, BottomRightFront, FVector(0, 1, 0), FVector(1, 0, 0));
+		//AddQuad(TopRightFront, TopLeftFront, BottomRightFront, BottomLeftFront, FVector(0, -1, 0), FVector(-1, 0, 0));
+	}
+	if(IsPossibleToAddSide(CurrentBlockData.Bottom))
+	{
+		// Bottom face can be added
+		AddQuad(BottomLeftFront, BottomRightFront, BottomLeftBack, BottomRightBack, FVector(0, 0, -1), FVector(1, 0, 0));
+		//AddQuad(BottomLeftBack, BottomRightBack, BottomLeftFront, BottomRightFront, FVector(0, 0, 1), FVector(1, 0, 0));
+	}
+	if(IsPossibleToAddSide(CurrentBlockData.Top))
+	{
+		// Top Face can be added
+		AddQuad(TopLeftBack, TopRightBack, TopLeftFront, TopRightFront, FVector(0, 0, 1), FVector(1, 0, 0));
+		//AddQuad(TopLeftFront, TopRightFront, TopLeftBack, TopRightBack, FVector(0, 0, -1), FVector(1, 0, 0));
+	}
+}
+UE_ENABLE_OPTIMIZATION
 
 const FIntVector UGridMeshUtilities::sc_CornerOffsets[8]
 {

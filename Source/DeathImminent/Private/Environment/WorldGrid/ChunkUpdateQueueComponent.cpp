@@ -1,4 +1,4 @@
-// Copyright MikeSMediaStudios™
+// Copyright MikeSMediaStudiosâ„¢
 
 #include "Environment/WorldGrid/ChunkUpdateQueueComponent.h"
 #include "Async/Async.h"

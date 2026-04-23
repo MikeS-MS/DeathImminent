@@ -8,4 +8,3 @@
 - BaseID struct now compares correctly based on the new class ref that it holds
 
 ### Removed:
-- Plugins from project folder, they are now in the engine
